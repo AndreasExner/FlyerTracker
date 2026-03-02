@@ -20,7 +20,7 @@ const FT_AUTH = (function () {
         const token = sessionStorage.getItem(TOKEN_KEY);
         return Object.assign({
             'X-API-Key': API_KEY,
-            'Authorization': token ? `Bearer ${token}` : ''
+            'X-Admin-Token': token || ''
         }, extra || {});
     }
 
@@ -46,7 +46,7 @@ const FT_AUTH = (function () {
         if (!token) return false;
         try {
             const res = await fetch(`${API_BASE}/auth/verify`, {
-                headers: { 'X-API-Key': API_KEY, 'Authorization': `Bearer ${token}` }
+                headers: { 'X-API-Key': API_KEY, 'X-Admin-Token': token }
             });
             return res.ok;
         } catch {

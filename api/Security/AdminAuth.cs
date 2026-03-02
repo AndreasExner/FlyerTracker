@@ -94,12 +94,16 @@ public class AdminAuth
     /// <summary>Validate a Bearer token from the Authorization header.</summary>
     public bool ValidateToken(HttpRequest req)
     {
-        var authHeader = req.Headers["Authorization"].FirstOrDefault();
-        if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
-            return false;
-
-        var token = authHeader["Bearer ".Length..].Trim();
-        return IsTokenValid(token);
+        // Use custom header because SWA managed functions proxy strips Authorization header
+        var token = req.Headers["X-Admin-Token"].FirstOrDefault();
+        if (string.IsNullOrEmpty(token))
+        {
+            // Fallback: also check Authorization header (for local dev / standalone)
+            var authHeader = req.Headers["Authorization"].FirstOrDefault();
+            if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                token = authHeader["Bearer ".Length..].Trim();
+        }
+        return !string.IsNullOrEmpty(token) && IsTokenValid(token);
     }
 
     /// <summary>Returns 401 Unauthorized result.</summary>
@@ -231,11 +235,15 @@ public class AdminAuth
     /// <summary>Extract username from a valid token (or null).</summary>
     public string? GetUsernameFromToken(HttpRequest req)
     {
-        var authHeader = req.Headers["Authorization"].FirstOrDefault();
-        if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
-            return null;
-
-        var token = authHeader["Bearer ".Length..].Trim();
+        // Use custom header because SWA managed functions proxy strips Authorization header
+        var token = req.Headers["X-Admin-Token"].FirstOrDefault();
+        if (string.IsNullOrEmpty(token))
+        {
+            var authHeader = req.Headers["Authorization"].FirstOrDefault();
+            if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                token = authHeader["Bearer ".Length..].Trim();
+        }
+        if (string.IsNullOrEmpty(token)) return null;
         try
         {
             var parts = token.Split('.');
