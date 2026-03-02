@@ -98,17 +98,6 @@
         });
     }
 
-    // ── Initialisation ───────────────────────────────────────────────
-    async function init() {
-        await Promise.all([loadNames(), loadLostDogs()]);
-        restoreSelections();
-        updateButtonState();
-
-        userNameEl.addEventListener('change', onSelectionChange);
-        lostDogEl.addEventListener('change', onSelectionChange);
-        saveBtnEl.addEventListener('click', onSaveLocation);
-    }
-
     // ── Load dropdown data ───────────────────────────────────────────
     async function loadNames() {
         try {
