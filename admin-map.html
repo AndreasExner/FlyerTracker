@@ -69,6 +69,21 @@
             user-select: none;
             transition: background 0.2s;
         }
+        .map-select {
+            padding: 0.35rem 0.75rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border: 1px solid #d2d2d7;
+            border-radius: 8px;
+            background: #fff;
+            color: #1d1d1f;
+            outline: none;
+            cursor: pointer;
+        }
+        .map-select:focus {
+            border-color: #0071e3;
+            box-shadow: 0 0 0 3px rgba(0,113,227,.15);
+        }
         .toggle-badge:has(input:checked) {
             background: #0071e3;
             color: #fff;
@@ -90,7 +105,9 @@
 
         <div class="map-info">
             <span class="badge" id="markerCount">0 Standorte</span>
-            <span class="badge" id="filterInfo">Alle Hunde</span>
+            <select id="filterDog" class="map-select" title="Filter nach Hund">
+                <option value="">Alle Hunde</option>
+            </select>
             <label class="toggle-badge" title="GPS-Genauigkeit als Kreis anzeigen">
                 <input type="checkbox" id="toggleCircles"> Genauigkeit
             </label>

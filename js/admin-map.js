@@ -4,7 +4,7 @@
     const API_BASE = FT_AUTH.getApiBase();
 
     const markerCountEl = document.getElementById('markerCount');
-    const filterInfoEl = document.getElementById('filterInfo');
+    const filterDogEl = document.getElementById('filterDog');
     const legendEl = document.getElementById('legend');
     const toggleCirclesEl = document.getElementById('toggleCircles');
     const toggleRoutesEl = document.getElementById('toggleRoutes');
@@ -43,7 +43,8 @@
 
     // ── Read filter from URL params ──────────────────────────────
     const urlParams = new URLSearchParams(window.location.search);
-    const filterDog = urlParams.get('lostDog') || '';
+    let filterDog = urlParams.get('lostDog') || '';
+    if (filterDog) filterDogEl.value = filterDog;
 
     // ── Init map ─────────────────────────────────────────────────
     const map = L.map('map').setView([51.1657, 10.4515], 6);
@@ -85,6 +86,20 @@
     const circlesLayer = L.layerGroup();
     const routesLayer = L.layerGroup();
 
+    // ── Filter change handler ────────────────────────────────────
+    filterDogEl.addEventListener('change', () => {
+        filterDog = filterDogEl.value;
+        // Reset color mapping for consistency
+        Object.keys(dogColorMap).forEach(k => delete dogColorMap[k]);
+        colorIdx = 0;
+        // Clear layers
+        clusterGroup.clearLayers();
+        circlesLayer.clearLayers();
+        routesLayer.clearLayers();
+        legendEl.innerHTML = '';
+        loadAndDisplay();
+    });
+
     // ── Toggle handlers ──────────────────────────────────────────
     toggleCirclesEl.addEventListener('change', () => {
         if (toggleCirclesEl.checked) {
@@ -118,9 +133,19 @@
             const data = await res.json();
             const records = data.records || [];
 
-            // Update info badges
+            // Update info badge
             markerCountEl.textContent = `${records.length} Standort${records.length !== 1 ? 'e' : ''}`;
-            filterInfoEl.textContent = filterDog ? `Hund: ${filterDog}` : 'Alle Hunde';
+
+            // Populate dog filter dropdown (keep current selection)
+            const currentDogs = data.lostDogs || [];
+            const currentVal = filterDogEl.value;
+            while (filterDogEl.options.length > 1) filterDogEl.remove(1);
+            currentDogs.forEach(d => {
+                const opt = document.createElement('option');
+                opt.value = d; opt.textContent = d;
+                filterDogEl.appendChild(opt);
+            });
+            filterDogEl.value = currentVal;
 
             if (records.length === 0) {
                 showToast('Keine GPS-Daten vorhanden', true);
