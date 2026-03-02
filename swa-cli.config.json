@@ -1,0 +1,14 @@
+{
+    "$schema": "https://aka.ms/azure/static-web-apps-cli/schema",
+    "configurations": {
+        "flyertracker": {
+            "appLocation": ".",
+            "apiLocation": "api",
+            "outputLocation": ".",
+            "apiLanguage": "dotnetisolated",
+            "apiVersion": "8",
+            "run": "",
+            "appDevserverUrl": ""
+        }
+    }
+}

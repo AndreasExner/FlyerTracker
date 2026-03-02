@@ -1,0 +1,155 @@
+using System.Text.Json;
+using Azure.Data.Tables;
+using FlyerTracker.Api.Security;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Logging;
+
+namespace FlyerTracker.Api.Functions;
+
+public class LostDogsFunction
+{
+    private readonly TableServiceClient _tableService;
+    private readonly ILogger<LostDogsFunction> _logger;
+    private readonly ApiKeyValidator _apiKey;
+    private readonly AdminAuth _adminAuth;
+
+    public LostDogsFunction(TableServiceClient tableService, ILogger<LostDogsFunction> logger,
+        ApiKeyValidator apiKey, AdminAuth adminAuth)
+    {
+        _tableService = tableService;
+        _logger = logger;
+        _apiKey = apiKey;
+        _adminAuth = adminAuth;
+    }
+
+    [Function("GetLostDogs")]
+    public async Task<IActionResult> GetLostDogs(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "lost-dogs")] HttpRequest req)
+    {
+        try
+        {
+            if (!_apiKey.IsValid(req))
+                return new ObjectResult(new { error = "Ungültiger API-Key" }) { StatusCode = 403 };
+            var tableClient = _tableService.GetTableClient("LostDogs");
+            await tableClient.CreateIfNotExistsAsync();
+
+            var locations = new List<string>();
+
+            await foreach (var entity in tableClient.QueryAsync<TableEntity>())
+            {
+                var location = entity.GetString("Location") ?? entity.RowKey;
+                if (!string.IsNullOrWhiteSpace(location))
+                    locations.Add(location);
+            }
+
+            locations.Sort(StringComparer.Create(new System.Globalization.CultureInfo("de-DE"), false));
+
+            return new OkObjectResult(locations);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading lost dogs");
+            return new StatusCodeResult(500);
+        }
+    }
+
+    [Function("GetLostDogsAdmin")]
+    public async Task<IActionResult> GetLostDogsAdmin(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "manage/lost-dogs")] HttpRequest req)
+    {
+        try
+        {
+            if (!_apiKey.IsValid(req))
+                return new ObjectResult(new { error = "Ungültiger API-Key" }) { StatusCode = 403 };
+            if (!_adminAuth.ValidateToken(req))
+                return AdminAuth.Unauthorized();
+            var tableClient = _tableService.GetTableClient("LostDogs");
+            await tableClient.CreateIfNotExistsAsync();
+
+            var items = new List<object>();
+            await foreach (var entity in tableClient.QueryAsync<TableEntity>())
+            {
+                items.Add(new
+                {
+                    partitionKey = entity.PartitionKey,
+                    rowKey = entity.RowKey,
+                    location = entity.GetString("Location") ?? entity.RowKey
+                });
+            }
+
+            var comparer = StringComparer.Create(new System.Globalization.CultureInfo("de-DE"), false);
+            items.Sort((a, b) => comparer.Compare(
+                ((dynamic)a).location, ((dynamic)b).location));
+
+            return new OkObjectResult(items);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading lost dogs (admin)");
+            return new StatusCodeResult(500);
+        }
+    }
+
+    [Function("CreateLostDog")]
+    public async Task<IActionResult> CreateLostDog(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "manage/lost-dogs")] HttpRequest req)
+    {
+        try
+        {
+            if (!_apiKey.IsValid(req))
+                return new ObjectResult(new { error = "Ungültiger API-Key" }) { StatusCode = 403 };
+            if (!_adminAuth.ValidateToken(req))
+                return AdminAuth.Unauthorized();
+
+            var body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body);
+            var location = body.GetProperty("location").GetString();
+
+            if (string.IsNullOrWhiteSpace(location))
+                return new BadRequestObjectResult(new { error = "Name darf nicht leer sein" });
+
+            var tableClient = _tableService.GetTableClient("LostDogs");
+            await tableClient.CreateIfNotExistsAsync();
+
+            var rowKey = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString("D15");
+            var entity = new TableEntity("locations", rowKey)
+            {
+                { "Location", location.Trim() }
+            };
+
+            await tableClient.AddEntityAsync(entity);
+            _logger.LogInformation("Lost dog created: {Location}", location);
+
+            return new CreatedResult("", new { partitionKey = "locations", rowKey, location = location.Trim() });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating lost dog");
+            return new StatusCodeResult(500);
+        }
+    }
+
+    [Function("DeleteLostDog")]
+    public async Task<IActionResult> DeleteLostDog(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "manage/lost-dogs/{rowKey}")] HttpRequest req,
+        string rowKey)
+    {
+        try
+        {
+            if (!_apiKey.IsValid(req))
+                return new ObjectResult(new { error = "Ungültiger API-Key" }) { StatusCode = 403 };
+            if (!_adminAuth.ValidateToken(req))
+                return AdminAuth.Unauthorized();
+            var tableClient = _tableService.GetTableClient("LostDogs");
+            await tableClient.DeleteEntityAsync("locations", rowKey);
+            _logger.LogInformation("Lost dog deleted: RowKey={RowKey}", rowKey);
+            return new OkObjectResult(new { message = "Gelöscht" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting lost dog");
+            return new StatusCodeResult(500);
+        }
+    }
+}

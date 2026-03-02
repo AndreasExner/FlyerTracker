@@ -1,0 +1,27 @@
+node_modules/
+.env
+
+# Build results
+bin/
+obj/
+publish/
+
+# .NET
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Azure Functions
+local.settings.json
+
+# IDE
+.vs/
+.vscode/
+*.swp
+*~
+
+# OS
+Thumbs.db
+.DS_Store
+deploy.zip
