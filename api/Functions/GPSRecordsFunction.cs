@@ -42,6 +42,7 @@ public class GPSRecordsFunction
             await tableClient.CreateIfNotExistsAsync();
 
             var lostDogFilter = req.Query["lostDog"].FirstOrDefault();
+            var nameFilter = req.Query["name"].FirstOrDefault();
             var pageSizeStr = req.Query["pageSize"].FirstOrDefault();
             var pageStr = req.Query["page"].FirstOrDefault();
 
@@ -52,7 +53,10 @@ public class GPSRecordsFunction
             await foreach (var entity in tableClient.QueryAsync<TableEntity>())
             {
                 var lostDog = entity.GetString("LostDog") ?? "";
+                var name = entity.PartitionKey ?? "";
                 if (!string.IsNullOrEmpty(lostDogFilter) && lostDog != lostDogFilter)
+                    continue;
+                if (!string.IsNullOrEmpty(nameFilter) && name != nameFilter)
                     continue;
 
                 allRecords.Add(new
@@ -78,6 +82,13 @@ public class GPSRecordsFunction
                 .OrderBy(d => d, StringComparer.Create(new System.Globalization.CultureInfo("de-DE"), false))
                 .ToList();
 
+            // Get unique names for filter dropdown
+            var names = allRecords.Select(r => ((dynamic)r).name as string)
+                .Where(n => !string.IsNullOrEmpty(n))
+                .Distinct()
+                .OrderBy(n => n, StringComparer.Create(new System.Globalization.CultureInfo("de-DE"), false))
+                .ToList();
+
             // Paginate
             IEnumerable<object> pagedRecords;
             if (pageSize.HasValue)
@@ -96,7 +107,8 @@ public class GPSRecordsFunction
                 page,
                 pageSize = pageSize ?? totalCount,
                 totalPages = pageSize.HasValue ? (int)Math.Ceiling((double)totalCount / pageSize.Value) : 1,
-                lostDogs
+                lostDogs,
+                names
             });
         }
         catch (Exception ex)

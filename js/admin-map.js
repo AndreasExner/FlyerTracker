@@ -5,6 +5,7 @@
 
     const markerCountEl = document.getElementById('markerCount');
     const filterDogEl = document.getElementById('filterDog');
+    const filterNameEl = document.getElementById('filterName');
     const legendEl = document.getElementById('legend');
     const toggleCirclesEl = document.getElementById('toggleCircles');
     const toggleRoutesEl = document.getElementById('toggleRoutes');
@@ -44,7 +45,9 @@
     // ── Read filter from URL params ──────────────────────────────
     const urlParams = new URLSearchParams(window.location.search);
     let filterDog = urlParams.get('lostDog') || '';
+    let filterName = urlParams.get('name') || '';
     if (filterDog) filterDogEl.value = filterDog;
+    if (filterName) filterNameEl.value = filterName;
 
     // ── Init map ─────────────────────────────────────────────────
     const map = L.map('map').setView([51.1657, 10.4515], 6);
@@ -95,8 +98,9 @@
     const routesLayer = L.layerGroup();
 
     // ── Filter change handler ────────────────────────────────────
-    filterDogEl.addEventListener('change', () => {
+    function onFilterChange() {
         filterDog = filterDogEl.value;
+        filterName = filterNameEl.value;
         // Reset color mapping for consistency
         Object.keys(dogColorMap).forEach(k => delete dogColorMap[k]);
         colorIdx = 0;
@@ -106,7 +110,9 @@
         routesLayer.clearLayers();
         legendEl.innerHTML = '';
         loadAndDisplay();
-    });
+    }
+    filterDogEl.addEventListener('change', onFilterChange);
+    filterNameEl.addEventListener('change', onFilterChange);
 
     // ── Toggle handlers ──────────────────────────────────────────
     toggleCirclesEl.addEventListener('change', () => {
@@ -131,6 +137,7 @@
             const params = new URLSearchParams();
             params.set('pageSize', 'all');
             if (filterDog) params.set('lostDog', filterDog);
+            if (filterName) params.set('name', filterName);
 
             const res = await fetch(`${API_BASE}/manage/gps-records?${params}`, {
                 headers: FT_AUTH.adminHeaders()
@@ -154,6 +161,17 @@
                 filterDogEl.appendChild(opt);
             });
             filterDogEl.value = currentVal;
+
+            // Populate name filter dropdown (keep current selection)
+            const currentNames = data.names || [];
+            const currentNameVal = filterNameEl.value;
+            while (filterNameEl.options.length > 1) filterNameEl.remove(1);
+            currentNames.forEach(n => {
+                const opt = document.createElement('option');
+                opt.value = n; opt.textContent = n;
+                filterNameEl.appendChild(opt);
+            });
+            filterNameEl.value = currentNameVal;
 
             if (records.length === 0) {
                 showToast('Keine GPS-Daten vorhanden', true);

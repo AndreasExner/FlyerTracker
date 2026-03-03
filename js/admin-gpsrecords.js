@@ -4,6 +4,7 @@
     const API_BASE = FT_AUTH.getApiBase();
 
     const filterDogEl = document.getElementById('filterDog');
+    const filterNameEl = document.getElementById('filterName');
     const sortFieldEl = document.getElementById('sortField');
     const pageSizeEl = document.getElementById('pageSize');
     const selectAllEl = document.getElementById('selectAll');
@@ -14,6 +15,7 @@
     const showMapBtn = document.getElementById('showMapBtn');
     const exportCsvBtn = document.getElementById('exportCsvBtn');
     const exportExcelBtn = document.getElementById('exportExcelBtn');
+    const exportKmlBtn = document.getElementById('exportKmlBtn');
     const toastEl = document.getElementById('toast');
     let toastTimeout = null;
 
@@ -25,17 +27,19 @@
         bodyEl.innerHTML = '<tr><td colspan="8" style="color:#6e6e73;text-align:center;padding:2rem">Lädt…</td></tr>';
         const ps = pageSizeEl.value;
         const dog = filterDogEl.value;
+        const name = filterNameEl.value;
         const params = new URLSearchParams();
         params.set('pageSize', ps);
         params.set('page', currentPage);
         if (dog) params.set('lostDog', dog);
+        if (name) params.set('name', name);
 
         try {
             const res = await fetch(`${API_BASE}/manage/gps-records?${params}`, { headers: FT_AUTH.adminHeaders() });
             if (res.status === 401) { FT_AUTH.logout(); location.href = 'admin.html'; return; }
             if (!res.ok) throw new Error();
             data = await res.json();
-            populateFilter(data.lostDogs);
+            populateFilter(data.lostDogs, data.names || []);
             sortRecords();
             renderTable();
             renderPagination();
@@ -45,9 +49,8 @@
         }
     }
 
-    function populateFilter(dogs) {
-        const current = filterDogEl.value;
-        // keep first "Alle Hunde" option
+    function populateFilter(dogs, names) {
+        const currentDog = filterDogEl.value;
         while (filterDogEl.options.length > 1) filterDogEl.remove(1);
         dogs.forEach(d => {
             const opt = document.createElement('option');
@@ -55,7 +58,17 @@
             opt.textContent = d;
             filterDogEl.appendChild(opt);
         });
-        filterDogEl.value = current;
+        filterDogEl.value = currentDog;
+
+        const currentName = filterNameEl.value;
+        while (filterNameEl.options.length > 1) filterNameEl.remove(1);
+        names.forEach(n => {
+            const opt = document.createElement('option');
+            opt.value = n;
+            opt.textContent = n;
+            filterNameEl.appendChild(opt);
+        });
+        filterNameEl.value = currentName;
     }
 
     // ── Render table ─────────────────────────────────────────────
@@ -166,13 +179,16 @@
     // ── CSV Export ────────────────────────────────────────────────
     exportCsvBtn.addEventListener('click', () => exportData('csv'));
     exportExcelBtn.addEventListener('click', () => exportData('excel'));
+    exportKmlBtn.addEventListener('click', () => exportKml());
 
     async function exportData(format) {
         // Fetch ALL records (no pagination) for export
         const dog = filterDogEl.value;
+        const name = filterNameEl.value;
         const params = new URLSearchParams();
         params.set('pageSize', 'all');
         if (dog) params.set('lostDog', dog);
+        if (name) params.set('name', name);
 
         try {
             showToast('Exportiere…');
@@ -254,6 +270,105 @@
         URL.revokeObjectURL(a.href);
     }
 
+    // ── KML Export ───────────────────────────────────────────────
+    async function exportKml() {
+        const dog = filterDogEl.value;
+        const name = filterNameEl.value;
+        const params = new URLSearchParams();
+        params.set('pageSize', 'all');
+        if (dog) params.set('lostDog', dog);
+        if (name) params.set('name', name);
+
+        try {
+            showToast('KML wird erstellt…');
+            const res = await fetch(`${API_BASE}/manage/gps-records?${params}`, { headers: FT_AUTH.adminHeaders() });
+            if (res.status === 401) { FT_AUTH.logout(); location.href = 'admin.html'; return; }
+            if (!res.ok) throw new Error();
+            const allData = await res.json();
+
+            if (allData.records.length === 0) {
+                showToast('Keine Daten zum Exportieren', true);
+                return;
+            }
+
+            // Color palette matching admin-map.js
+            const COLORS = [
+                'ff0071e3', 'ff3b30ff', 'ff34c759', 'ff9500ff', 'ffaf52de',
+                'ff5856d6', 'ffff2d55', 'ff00c7be', 'ffa2845e', 'ff64d2ff'
+            ];
+            // KML uses aaBBGGRR — convert hex #RRGGBB to KML
+            function toKmlColor(hex) {
+                const r = hex.slice(0, 2), g = hex.slice(2, 4), b = hex.slice(4, 6);
+                return 'ff' + b + g + r;
+            }
+            const palette = [
+                '#0071e3', '#ff3b30', '#34c759', '#ff9500', '#af52de',
+                '#5856d6', '#ff2d55', '#00c7be', '#a2845e', '#64d2ff'
+            ];
+            const dogColors = {};
+            let ci = 0;
+
+            // Group records by dog for routes
+            const byDog = {};
+            allData.records.forEach(r => {
+                const d = r.lostDog || 'Unbekannt';
+                if (!dogColors[d]) { dogColors[d] = palette[ci % palette.length]; ci++; }
+                if (!byDog[d]) byDog[d] = [];
+                byDog[d].push(r);
+            });
+
+            let kml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+            kml += '<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document>\n';
+            kml += `<name>FlyerTracker GPS-Daten</name>\n`;
+            kml += `<description>Export vom ${new Date().toLocaleDateString('de-DE')}</description>\n`;
+
+            // Styles per dog
+            Object.entries(dogColors).forEach(([d, hex]) => {
+                const kc = toKmlColor(hex.replace('#', ''));
+                const id = escXml(d.replace(/\s+/g, '_'));
+                kml += `<Style id="style_${id}"><IconStyle><color>${kc}</color><scale>1.1</scale>`;
+                kml += `<Icon><href>http://maps.google.com/mapfiles/kml/paddle/wht-blank.png</href></Icon>`;
+                kml += `</IconStyle><LineStyle><color>${kc}</color><width>3</width></LineStyle></Style>\n`;
+            });
+
+            // Placemarks
+            allData.records.forEach(r => {
+                const d = r.lostDog || 'Unbekannt';
+                const sid = escXml(d.replace(/\s+/g, '_'));
+                const ts = r.recordedAt ? new Date(r.recordedAt).toLocaleString('de-DE') : '';
+                kml += '<Placemark>\n';
+                kml += `<name>${escXml(r.name || '')} – ${escXml(d)}</name>\n`;
+                kml += `<description><![CDATA[Name: ${r.name}<br>Hund: ${d}<br>Zeit: ${ts}<br>Genauigkeit: ${r.accuracy?.toFixed(1) || '?'} m`;
+                if (r.photoUrl) kml += `<br><img src="${r.photoUrl}" width="200">`;
+                kml += `]]></description>\n`;
+                kml += `<styleUrl>#style_${sid}</styleUrl>\n`;
+                if (r.recordedAt) kml += `<TimeStamp><when>${r.recordedAt}</when></TimeStamp>\n`;
+                kml += `<Point><coordinates>${r.longitude},${r.latitude},0</coordinates></Point>\n`;
+                kml += '</Placemark>\n';
+            });
+
+            // Route lines per dog
+            Object.entries(byDog).forEach(([d, recs]) => {
+                if (recs.length < 2) return;
+                const sid = escXml(d.replace(/\s+/g, '_'));
+                recs.sort((a, b) => (a.recordedAt || '').localeCompare(b.recordedAt || ''));
+                kml += '<Placemark>\n';
+                kml += `<name>Route: ${escXml(d)}</name>\n`;
+                kml += `<styleUrl>#style_${sid}</styleUrl>\n`;
+                kml += '<LineString><tessellate>1</tessellate><coordinates>\n';
+                recs.forEach(r => { kml += `${r.longitude},${r.latitude},0\n`; });
+                kml += '</coordinates></LineString>\n';
+                kml += '</Placemark>\n';
+            });
+
+            kml += '</Document>\n</kml>';
+            download(kml, 'FlyerTracker-GPS.kml', 'application/vnd.google-earth.kml+xml');
+            showToast('KML Export abgeschlossen');
+        } catch {
+            showToast('KML Export fehlgeschlagen', true);
+        }
+    }
+
     // ── Sorting ──────────────────────────────────────────────────
     function sortRecords() {
         const sort = sortFieldEl.value;
@@ -275,7 +390,9 @@
     showMapBtn.addEventListener('click', () => {
         const params = new URLSearchParams();
         const dog = filterDogEl.value;
+        const name = filterNameEl.value;
         if (dog) params.set('lostDog', dog);
+        if (name) params.set('name', name);
         const sort = sortFieldEl.value;
         if (sort) params.set('sort', sort);
         const qs = params.toString();
@@ -284,6 +401,7 @@
 
     // ── Events ───────────────────────────────────────────────────
     filterDogEl.addEventListener('change', () => { currentPage = 1; loadRecords(); });
+    filterNameEl.addEventListener('change', () => { currentPage = 1; loadRecords(); });
     sortFieldEl.addEventListener('change', () => { sortRecords(); renderTable(); });
     pageSizeEl.addEventListener('change', () => { currentPage = 1; loadRecords(); });
 
