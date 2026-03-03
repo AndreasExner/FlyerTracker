@@ -40,10 +40,6 @@
             </select>
 
             <button class="btn btn-secondary btn-sm" id="showMapBtn">🗺️ Karte</button>
-            <button class="btn btn-secondary btn-sm" id="exportKmlBtn">KML Export</button>
-            <button class="btn btn-secondary btn-sm" id="exportCsvBtn">CSV Export</button>
-            <button class="btn btn-secondary btn-sm" id="exportExcelBtn">Excel Export</button>
-            <button class="btn btn-danger btn-sm" id="deleteSelectedBtn" disabled>Auswahl löschen</button>
         </div>
 
         <!-- Data table -->
@@ -69,6 +65,13 @@
         <div class="pagination">
             <span class="info" id="pageInfo"></span>
             <div class="page-buttons" id="pageButtons"></div>
+        </div>
+
+        <!-- Actions below table -->
+        <div class="toolbar" style="margin-top: 0.75rem;">
+            <button class="btn btn-secondary btn-sm" id="exportKmlBtn">KML Export</button>
+            <button class="btn btn-secondary btn-sm" id="exportCsvBtn">CSV Export</button>
+            <button class="btn btn-danger btn-sm" id="deleteSelectedBtn" disabled>Ausgewählte löschen</button>
         </div>
 
         <div id="toast" class="toast hidden"></div>

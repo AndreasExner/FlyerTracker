@@ -14,7 +14,6 @@
     const deleteBtn = document.getElementById('deleteSelectedBtn');
     const showMapBtn = document.getElementById('showMapBtn');
     const exportCsvBtn = document.getElementById('exportCsvBtn');
-    const exportExcelBtn = document.getElementById('exportExcelBtn');
     const exportKmlBtn = document.getElementById('exportKmlBtn');
     const toastEl = document.getElementById('toast');
     let toastTimeout = null;
@@ -150,7 +149,7 @@
     function updateDeleteButton() {
         const n = getSelected().length;
         deleteBtn.disabled = n === 0;
-        deleteBtn.textContent = n > 0 ? `Auswahl löschen (${n})` : 'Auswahl löschen';
+        deleteBtn.textContent = n > 0 ? `Ausgewählte löschen (${n})` : 'Ausgewählte löschen';
     }
 
     // ── Delete selected ──────────────────────────────────────────
@@ -177,11 +176,10 @@
     });
 
     // ── CSV Export ────────────────────────────────────────────────
-    exportCsvBtn.addEventListener('click', () => exportData('csv'));
-    exportExcelBtn.addEventListener('click', () => exportData('excel'));
+    exportCsvBtn.addEventListener('click', () => exportData());
     exportKmlBtn.addEventListener('click', () => exportKml());
 
-    async function exportData(format) {
+    async function exportData() {
         // Fetch ALL records (no pagination) for export
         const dog = filterDogEl.value;
         const name = filterNameEl.value;
@@ -210,11 +208,7 @@
                 r.photoUrl || ''
             ]);
 
-            if (format === 'csv') {
-                downloadCSV(headers, rows);
-            } else {
-                downloadExcel(headers, rows);
-            }
+            downloadCSV(headers, rows);
             showToast('Export abgeschlossen');
         } catch {
             showToast('Export fehlgeschlagen', true);
@@ -229,34 +223,6 @@
             csv += r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(sep) + '\n';
         });
         download(csv, 'GPS-Daten.csv', 'text/csv;charset=utf-8');
-    }
-
-    function downloadExcel(headers, rows) {
-        // Simple XML-based Excel export (opens in Excel without library)
-        let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
-        xml += '<?mso-application progid="Excel.Sheet"?>\n';
-        xml += '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"\n';
-        xml += '  xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">\n';
-        xml += '<Worksheet ss:Name="GPS-Daten"><Table>\n';
-
-        // Header row
-        xml += '<Row>';
-        headers.forEach(h => { xml += `<Cell><Data ss:Type="String">${escXml(h)}</Data></Cell>`; });
-        xml += '</Row>\n';
-
-        // Data rows
-        rows.forEach(r => {
-            xml += '<Row>';
-            r.forEach((v, i) => {
-                const isNum = (i >= 2 && i <= 4);
-                const type = isNum ? 'Number' : 'String';
-                xml += `<Cell><Data ss:Type="${type}">${escXml(String(v))}</Data></Cell>`;
-            });
-            xml += '</Row>\n';
-        });
-
-        xml += '</Table></Worksheet></Workbook>';
-        download(xml, 'GPS-Daten.xls', 'application/vnd.ms-excel');
     }
 
     function download(content, filename, mimeType) {
