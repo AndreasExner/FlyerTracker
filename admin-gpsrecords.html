@@ -6,6 +6,7 @@
     <meta name="theme-color" content="#ffffff">
     <title>FlyerTracker – GPS-Daten</title>
     <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
 <body>
     <div class="site-banner">Hundesuchhilfe-Ostfriesland e.V.</div>
@@ -14,6 +15,34 @@
             <h1>GPS-Daten</h1>
             <a href="admin.html" class="btn-back">Zurück</a>
         </div>
+
+        <!-- Address entry panel -->
+        <details id="addressPanel" class="address-panel">
+            <summary>📍 Neuer Eintrag (Adresse)</summary>
+            <div class="address-form">
+                <div class="address-search-row">
+                    <input type="text" id="addressInput" placeholder="Straße, Ort eingeben…" autocomplete="off">
+                    <button class="btn btn-primary btn-sm" id="searchAddressBtn">Suchen</button>
+                </div>
+                <ul id="searchResults" class="search-results hidden"></ul>
+                <div id="miniMapWrap" class="mini-map-wrap hidden">
+                    <div id="miniMap"></div>
+                    <div class="map-hint">Marker verschiebbar für Feinkorrektur</div>
+                </div>
+                <div id="entryFields" class="entry-fields hidden">
+                    <div class="form-grid">
+                        <select id="entryName" title="Name"><option value="">Name wählen…</option></select>
+                        <select id="entryDog" title="Hund"><option value="">Hund wählen…</option></select>
+                        <select id="entryCategory" title="Kategorie"><option value="">Kategorie wählen…</option></select>
+                        <input type="text" id="entryComment" placeholder="Kommentar (optional, max. 40 Zeichen)" maxlength="40">
+                        <input type="datetime-local" id="entryTimestamp" title="Zeitpunkt">
+                    </div>
+                    <div class="coords-display" id="coordsDisplay"></div>
+                    <button class="btn btn-primary" id="saveEntryBtn" disabled>Eintrag speichern</button>
+                </div>
+                <div class="nominatim-attr">Suche: <a href="https://nominatim.openstreetmap.org" target="_blank" rel="noopener">Nominatim/OpenStreetMap</a></div>
+            </div>
+        </details>
 
         <!-- Toolbar: filter, sort, page-size, actions -->
         <div class="toolbar">
@@ -92,6 +121,7 @@
     <script>
         FT_AUTH.isLoggedIn().then(ok => { if (!ok) location.href = 'admin.html'; });
     </script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="js/admin-gpsrecords.js"></script>
 </body>
 </html>

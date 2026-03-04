@@ -420,6 +420,201 @@
         toastTimeout = setTimeout(() => toastEl.classList.add('hidden'), 2500);
     }
 
+    // ── Address Entry ────────────────────────────────────────────
+    const addressPanel = document.getElementById('addressPanel');
+    const addressInput = document.getElementById('addressInput');
+    const searchAddressBtn = document.getElementById('searchAddressBtn');
+    const searchResultsEl = document.getElementById('searchResults');
+    const miniMapWrap = document.getElementById('miniMapWrap');
+    const entryFields = document.getElementById('entryFields');
+    const entryNameEl = document.getElementById('entryName');
+    const entryDogEl = document.getElementById('entryDog');
+    const entryCategoryEl = document.getElementById('entryCategory');
+    const entryCommentEl = document.getElementById('entryComment');
+    const entryTimestampEl = document.getElementById('entryTimestamp');
+    const coordsDisplayEl = document.getElementById('coordsDisplay');
+    const saveEntryBtn = document.getElementById('saveEntryBtn');
+
+    let miniMap = null;
+    let miniMarker = null;
+    let selectedCoords = null;
+    let entryDropdownsLoaded = false;
+
+    /** Load Name / Hund / Kategorie dropdowns for the entry form */
+    async function loadEntryDropdowns() {
+        if (entryDropdownsLoaded) return;
+        try {
+            const hdrs = FT_AUTH.publicHeaders();
+            const [namesRes, dogsRes, catsRes] = await Promise.all([
+                fetch(`${API_BASE}/names`, { headers: hdrs }),
+                fetch(`${API_BASE}/lost-dogs`, { headers: hdrs }),
+                fetch(`${API_BASE}/categories`, { headers: hdrs })
+            ]);
+            const names = await namesRes.json();
+            const dogs = await dogsRes.json();
+            const cats = await catsRes.json();
+
+            names.forEach(n => { const o = document.createElement('option'); o.value = n; o.textContent = n; entryNameEl.appendChild(o); });
+            dogs.forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; entryDogEl.appendChild(o); });
+            cats.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; entryCategoryEl.appendChild(o); });
+            entryDropdownsLoaded = true;
+        } catch (e) {
+            console.error('Failed to load entry dropdowns', e);
+            showToast('Dropdown-Daten konnten nicht geladen werden', true);
+        }
+    }
+
+    /** Set timestamp field to current local time */
+    function setDefaultTimestamp() {
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        entryTimestampEl.value = now.toISOString().slice(0, 16);
+    }
+
+    /** Search Nominatim for address (DE + NL) */
+    async function searchAddress() {
+        const q = addressInput.value.trim();
+        if (q.length < 3) { showToast('Bitte mindestens 3 Zeichen eingeben', true); return; }
+
+        searchAddressBtn.disabled = true;
+        searchAddressBtn.textContent = '⏳';
+
+        try {
+            const params = new URLSearchParams({
+                q,
+                format: 'json',
+                addressdetails: '1',
+                countrycodes: 'de,nl',
+                limit: '5'
+            });
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
+                headers: { 'Accept-Language': 'de' }
+            });
+            const results = await res.json();
+
+            if (results.length === 0) {
+                showToast('Keine Ergebnisse gefunden', true);
+                searchResultsEl.classList.add('hidden');
+                return;
+            }
+
+            searchResultsEl.innerHTML = '';
+            results.forEach(r => {
+                const li = document.createElement('li');
+                li.textContent = r.display_name;
+                li.addEventListener('click', () => selectResult(r));
+                searchResultsEl.appendChild(li);
+            });
+            searchResultsEl.classList.remove('hidden');
+        } catch {
+            showToast('Fehler bei der Adresssuche', true);
+        } finally {
+            searchAddressBtn.disabled = false;
+            searchAddressBtn.textContent = 'Suchen';
+        }
+    }
+
+    /** User picked a result → show map + form fields */
+    function selectResult(result) {
+        selectedCoords = { lat: parseFloat(result.lat), lon: parseFloat(result.lon) };
+        searchResultsEl.classList.add('hidden');
+        addressInput.value = result.display_name;
+
+        // Show / init mini map
+        miniMapWrap.classList.remove('hidden');
+        if (!miniMap) {
+            miniMap = L.map('miniMap').setView([selectedCoords.lat, selectedCoords.lon], 16);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap'
+            }).addTo(miniMap);
+        } else {
+            miniMap.setView([selectedCoords.lat, selectedCoords.lon], 16);
+        }
+
+        if (miniMarker) miniMarker.remove();
+        miniMarker = L.marker([selectedCoords.lat, selectedCoords.lon], { draggable: true }).addTo(miniMap);
+        miniMarker.bindPopup(result.display_name).openPopup();
+        miniMarker.on('dragend', () => {
+            const pos = miniMarker.getLatLng();
+            selectedCoords = { lat: pos.lat, lon: pos.lng };
+            coordsDisplayEl.textContent = `📍 ${selectedCoords.lat.toFixed(6)}, ${selectedCoords.lon.toFixed(6)}`;
+        });
+
+        // Show entry fields
+        entryFields.classList.remove('hidden');
+        coordsDisplayEl.textContent = `📍 ${selectedCoords.lat.toFixed(6)}, ${selectedCoords.lon.toFixed(6)}`;
+        setDefaultTimestamp();
+        updateSaveBtn();
+
+        // Leaflet needs resize after container becomes visible
+        setTimeout(() => miniMap.invalidateSize(), 150);
+    }
+
+    function updateSaveBtn() {
+        saveEntryBtn.disabled = !(selectedCoords && entryNameEl.value && entryDogEl.value && entryCategoryEl.value);
+    }
+
+    /** Save the entry via existing save-location endpoint */
+    async function saveEntry() {
+        if (saveEntryBtn.disabled) return;
+        saveEntryBtn.disabled = true;
+        saveEntryBtn.textContent = 'Wird gespeichert…';
+
+        try {
+            const payload = {
+                name: entryNameEl.value,
+                lostDog: entryDogEl.value,
+                category: entryCategoryEl.value,
+                comment: entryCommentEl.value.trim(),
+                latitude: selectedCoords.lat,
+                longitude: selectedCoords.lon,
+                accuracy: 0,
+                timestamp: new Date(entryTimestampEl.value).toISOString()
+            };
+
+            const res = await fetch(`${API_BASE}/save-location`, {
+                method: 'POST',
+                headers: FT_AUTH.publicHeaders({ 'Content-Type': 'application/json' }),
+                body: JSON.stringify(payload)
+            });
+            if (!res.ok) throw new Error();
+
+            showToast('Eintrag gespeichert ✓');
+
+            // Reset form
+            selectedCoords = null;
+            addressInput.value = '';
+            entryCommentEl.value = '';
+            coordsDisplayEl.textContent = '';
+            miniMapWrap.classList.add('hidden');
+            entryFields.classList.add('hidden');
+            searchResultsEl.classList.add('hidden');
+            if (miniMarker) { miniMarker.remove(); miniMarker = null; }
+            updateSaveBtn();
+
+            // Reload table to show new entry
+            await loadRecords();
+        } catch {
+            showToast('Fehler beim Speichern', true);
+        } finally {
+            saveEntryBtn.textContent = 'Eintrag speichern';
+            updateSaveBtn();
+        }
+    }
+
+    // Address entry events
+    searchAddressBtn.addEventListener('click', searchAddress);
+    addressInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); searchAddress(); } });
+    entryNameEl.addEventListener('change', updateSaveBtn);
+    entryDogEl.addEventListener('change', updateSaveBtn);
+    entryCategoryEl.addEventListener('change', updateSaveBtn);
+    saveEntryBtn.addEventListener('click', saveEntry);
+
+    // Load dropdowns lazily when panel opens
+    addressPanel.addEventListener('toggle', () => {
+        if (addressPanel.open) loadEntryDropdowns();
+    });
+
     // ── Init ─────────────────────────────────────────────────────
     loadRecords();
 })();
