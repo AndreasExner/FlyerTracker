@@ -19,6 +19,9 @@
     const filterName = urlParams.get('name') || '';
     const filterDog = urlParams.get('lostDog') || '';
 
+    let currentPage = 1;
+    let data = { records: [], totalCount: 0, page: 1, pageSize: 20, totalPages: 1 };
+
     if (!filterName || !filterDog) {
         filterInfoEl.textContent = '⚠️ Kein Name/Hund ausgewählt';
         bodyEl.innerHTML = '<tr><td colspan="8" style="color:#ff3b30;text-align:center;padding:2rem">Bitte zuerst Name und Hund auf der Startseite auswählen.</td></tr>';
@@ -29,9 +32,6 @@
         filterInfoEl.textContent = `${filterName} / ${filterDog}`;
         init();
     }
-
-    let currentPage = 1;
-    let data = { records: [], totalCount: 0, page: 1, pageSize: 20, totalPages: 1 };
 
     function init() {
         sortFieldEl.addEventListener('change', () => { sortRecords(); renderTable(); });
