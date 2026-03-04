@@ -23,7 +23,7 @@
 
     // ── Load records ─────────────────────────────────────────────
     async function loadRecords() {
-        bodyEl.innerHTML = '<tr><td colspan="8" style="color:#6e6e73;text-align:center;padding:2rem">Lädt…</td></tr>';
+        bodyEl.innerHTML = '<tr><td colspan="10" style="color:#6e6e73;text-align:center;padding:2rem">Lädt…</td></tr>';
         const ps = pageSizeEl.value;
         const dog = filterDogEl.value;
         const name = filterNameEl.value;
@@ -44,7 +44,7 @@
             renderPagination();
             updateDeleteButton();
         } catch {
-            bodyEl.innerHTML = '<tr><td colspan="8" style="color:#ff3b30;text-align:center;padding:2rem">Fehler beim Laden</td></tr>';
+            bodyEl.innerHTML = '<tr><td colspan="10" style="color:#ff3b30;text-align:center;padding:2rem">Fehler beim Laden</td></tr>';
         }
     }
 
@@ -76,7 +76,7 @@
         selectAllEl.checked = false;
 
         if (data.records.length === 0) {
-            bodyEl.innerHTML = '<tr><td colspan="8" style="color:#6e6e73;text-align:center;padding:2rem">Keine Einträge</td></tr>';
+            bodyEl.innerHTML = '<tr><td colspan="10" style="color:#6e6e73;text-align:center;padding:2rem">Keine Einträge</td></tr>';
             return;
         }
 
@@ -89,6 +89,8 @@
                 <td><input type="checkbox" class="row-cb" data-pk="${esc(r.partitionKey)}" data-rk="${esc(r.rowKey)}"></td>
                 <td>${esc(r.name)}</td>
                 <td>${esc(r.lostDog)}</td>
+                <td>${esc(r.category || '')}</td>
+                <td>${esc(r.comment || '')}</td>
                 ${photoCell}
                 <td>${r.latitude.toFixed(6)}</td>
                 <td>${r.longitude.toFixed(6)}</td>
@@ -200,9 +202,10 @@
                 return;
             }
 
-            const headers = ['Name', 'Hund', 'Breitengrad', 'L\u00e4ngengrad', 'Genauigkeit', 'Zeitpunkt', 'Foto-URL'];
+            const headers = ['Name', 'Hund', 'Kategorie', 'Kommentar', 'Breitengrad', 'L\u00e4ngengrad', 'Genauigkeit', 'Zeitpunkt', 'Foto-URL'];
             const rows = allData.records.map(r => [
                 r.name, r.lostDog,
+                r.category || '', r.comment || '',
                 r.latitude, r.longitude,
                 r.accuracy, r.recordedAt,
                 r.photoUrl || ''
@@ -304,7 +307,7 @@
                 const ts = r.recordedAt ? new Date(r.recordedAt).toLocaleString('de-DE') : '';
                 kml += '<Placemark>\n';
                 kml += `<name>${escXml(r.name || '')} – ${escXml(d)}</name>\n`;
-                kml += `<description><![CDATA[Name: ${r.name}<br>Hund: ${d}<br>Zeit: ${ts}<br>Genauigkeit: ${r.accuracy?.toFixed(1) || '?'} m`;
+                kml += `<description><![CDATA[Name: ${r.name}<br>Hund: ${d}<br>Kategorie: ${r.category || '–'}<br>Kommentar: ${r.comment || '–'}<br>Zeit: ${ts}<br>Genauigkeit: ${r.accuracy?.toFixed(1) || '?'} m`;
                 if (r.photoUrl) kml += `<br><img src="${r.photoUrl}" width="200">`;
                 kml += `]]></description>\n`;
                 kml += `<styleUrl>#style_${sid}</styleUrl>\n`;

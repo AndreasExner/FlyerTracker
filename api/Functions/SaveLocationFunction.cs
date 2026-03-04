@@ -49,6 +49,8 @@ public class SaveLocationFunction
 
             var contentType = req.ContentType ?? "";
 
+            string? comment, category;
+
             if (contentType.Contains("multipart/form-data", StringComparison.OrdinalIgnoreCase))
             {
                 // ── Multipart: form fields + optional photo ──
@@ -59,6 +61,8 @@ public class SaveLocationFunction
                 longitude = double.TryParse(form["longitude"], System.Globalization.CultureInfo.InvariantCulture, out var lon) ? lon : null;
                 accuracy = double.TryParse(form["accuracy"], System.Globalization.CultureInfo.InvariantCulture, out var acc) ? acc : (double?)null;
                 timestamp = form["timestamp"].FirstOrDefault();
+                comment = form["comment"].FirstOrDefault();
+                category = form["category"].FirstOrDefault();
                 photo = form.Files.GetFile("photo");
             }
             else
@@ -72,6 +76,8 @@ public class SaveLocationFunction
                 longitude = body?.Longitude;
                 accuracy = body?.Accuracy;
                 timestamp = body?.Timestamp;
+                comment = body?.Comment;
+                category = body?.Category;
             }
 
             if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(lostDog) ||
@@ -117,6 +123,10 @@ public class SaveLocationFunction
             var tableClient = _tableService.GetTableClient("GPSRecords");
             await tableClient.CreateIfNotExistsAsync();
 
+            // Validate comment length
+            if (comment is not null && comment.Length > 40)
+                comment = comment[..40];
+
             var entity = new TableEntity(name, rowKey)
             {
                 { "LostDog", lostDog },
@@ -128,6 +138,12 @@ public class SaveLocationFunction
 
             if (photoUrl is not null)
                 entity["PhotoUrl"] = photoUrl;
+
+            if (!string.IsNullOrWhiteSpace(comment))
+                entity["Comment"] = comment.Trim();
+
+            if (!string.IsNullOrWhiteSpace(category))
+                entity["Category"] = category.Trim();
 
             await tableClient.AddEntityAsync(entity);
 
@@ -151,5 +167,7 @@ public class SaveLocationFunction
         public double? Longitude { get; init; }
         public double? Accuracy { get; init; }
         public string? Timestamp { get; init; }
+        public string? Comment { get; init; }
+        public string? Category { get; init; }
     }
 }

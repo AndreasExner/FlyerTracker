@@ -7,9 +7,12 @@
     const API_KEY = IS_LOCAL ? 'flyertracker-dev-key-2026' : 'ft-prod-key-8bffad18b4db499c';
     const STORAGE_KEY_NAME = 'flyertracker_userName';
     const STORAGE_KEY_LOCATION = 'flyertracker_lostDog';
+    const STORAGE_KEY_CATEGORY = 'flyertracker_category';
 
     const userNameEl = document.getElementById('userName');
     const lostDogEl = document.getElementById('lostDog');
+    const categoryEl = document.getElementById('category');
+    const commentEl = document.getElementById('comment');
     const saveBtnEl = document.getElementById('saveBtn');
     const toastEl = document.getElementById('toast');
     const photoBtnEl = document.getElementById('photoBtn');
@@ -23,12 +26,13 @@
 
     // ── Initialisation ───────────────────────────────────────────────
     async function init() {
-        await Promise.all([loadNames(), loadLostDogs()]);
+        await Promise.all([loadNames(), loadLostDogs(), loadCategories()]);
         restoreSelections();
         updateButtonState();
 
         userNameEl.addEventListener('change', onSelectionChange);
         lostDogEl.addEventListener('change', onSelectionChange);
+        categoryEl.addEventListener('change', onSelectionChange);
         saveBtnEl.addEventListener('click', onSaveLocation);
 
         // Photo handling
@@ -139,17 +143,40 @@
         }
     }
 
+    async function loadCategories() {
+        try {
+            categoryEl.classList.add('loading');
+            const res = await fetch(`${API_BASE}/categories`, { headers: { 'X-API-Key': API_KEY } });
+            if (!res.ok) throw new Error('Fehler beim Laden der Kategorien');
+            const cats = await res.json();
+            cats.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c;
+                opt.textContent = c;
+                categoryEl.appendChild(opt);
+            });
+        } catch (err) {
+            console.error(err);
+            showToast('Kategorien konnten nicht geladen werden', true);
+        } finally {
+            categoryEl.classList.remove('loading');
+        }
+    }
+
     // ── Selection persistence (localStorage) ─────────────────────────
     function restoreSelections() {
         const savedName = localStorage.getItem(STORAGE_KEY_NAME);
         const savedLoc = localStorage.getItem(STORAGE_KEY_LOCATION);
+        const savedCat = localStorage.getItem(STORAGE_KEY_CATEGORY);
         if (savedName) userNameEl.value = savedName;
         if (savedLoc) lostDogEl.value = savedLoc;
+        if (savedCat) categoryEl.value = savedCat;
     }
 
     function persistSelections() {
         localStorage.setItem(STORAGE_KEY_NAME, userNameEl.value);
         localStorage.setItem(STORAGE_KEY_LOCATION, lostDogEl.value);
+        localStorage.setItem(STORAGE_KEY_CATEGORY, categoryEl.value);
     }
 
     function onSelectionChange() {
@@ -158,7 +185,7 @@
     }
 
     function updateButtonState() {
-        saveBtnEl.disabled = !(userNameEl.value && lostDogEl.value);
+        saveBtnEl.disabled = !(userNameEl.value && lostDogEl.value && categoryEl.value);
     }
 
     // ── Save GPS location ────────────────────────────────────────────
@@ -176,6 +203,8 @@
                 const fd = new FormData();
                 fd.append('name', userNameEl.value);
                 fd.append('lostDog', lostDogEl.value);
+                fd.append('category', categoryEl.value);
+                fd.append('comment', commentEl.value.trim());
                 fd.append('latitude', position.coords.latitude.toString());
                 fd.append('longitude', position.coords.longitude.toString());
                 fd.append('accuracy', position.coords.accuracy.toString());
@@ -193,6 +222,8 @@
                 const payload = {
                     name: userNameEl.value,
                     lostDog: lostDogEl.value,
+                    category: categoryEl.value,
+                    comment: commentEl.value.trim(),
                     latitude: position.coords.latitude,
                     longitude: position.coords.longitude,
                     accuracy: position.coords.accuracy,
@@ -209,6 +240,7 @@
 
             showToast('Standort gespeichert ✓');
             removePhoto(); // reset photo after successful save
+            commentEl.value = ''; // reset comment after successful save
         } catch (err) {
             console.error(err);
             if (err.code === 1) {

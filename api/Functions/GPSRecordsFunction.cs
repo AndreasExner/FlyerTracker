@@ -69,7 +69,9 @@ public class GPSRecordsFunction
                     longitude = entity.GetDouble("Longitude") ?? 0,
                     accuracy = entity.GetDouble("Accuracy") ?? 0,
                     recordedAt = entity.GetString("RecordedAt") ?? entity.Timestamp?.ToString("o") ?? "",
-                    photoUrl = entity.GetString("PhotoUrl") ?? ""
+                    photoUrl = entity.GetString("PhotoUrl") ?? "",
+                    comment = entity.GetString("Comment") ?? "",
+                    category = entity.GetString("Category") ?? ""
                 });
             }
 

@@ -203,9 +203,13 @@
                     `<a class="nav-waze" href="https://waze.com/ul?ll=${r.latitude},${r.longitude}&navigate=yes" target="_blank" rel="noopener">Waze</a>` +
                     `</div>`;
 
+                const categoryHtml = r.category ? `<br>🏷️ ${escHtml(r.category)}` : '';
+                const commentHtml = r.comment ? `<br>💬 ${escHtml(r.comment)}` : '';
+
                 marker.bindPopup(
                     `<strong>${escHtml(r.name)}</strong><br>` +
-                    `🐕 ${escHtml(r.lostDog)}<br>` +
+                    `🐕 ${escHtml(r.lostDog)}` +
+                    categoryHtml + commentHtml + `<br>` +
                     `📍 ${r.latitude.toFixed(6)}, ${r.longitude.toFixed(6)}<br>` +
                     `🎯 ±${r.accuracy.toFixed(0)} m<br>` +
                     `🕐 ${formatDate(r.recordedAt)}` +
