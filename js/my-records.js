@@ -89,13 +89,13 @@
                 : '<td class="no-photo">—</td>';
             tr.innerHTML = `
                 <td><input type="checkbox" class="row-cb" data-pk="${esc(r.partitionKey)}" data-rk="${esc(r.rowKey)}"></td>
+                <td>${formatDate(r.recordedAt)}</td>
                 <td>${esc(r.category || '')}</td>
                 <td>${esc(r.comment || '')}</td>
                 ${photoCell}
                 <td>${r.latitude.toFixed(6)}</td>
                 <td>${r.longitude.toFixed(6)}</td>
-                <td>${r.accuracy.toFixed(1)} m</td>
-                <td>${formatDate(r.recordedAt)}</td>`;
+                <td>${r.accuracy.toFixed(1)} m</td>`;
             bodyEl.appendChild(tr);
         });
     }
@@ -189,8 +189,8 @@
         try {
             const d = new Date(iso);
             return d.toLocaleString('de-DE', {
-                day: '2-digit', month: '2-digit', year: 'numeric',
-                hour: '2-digit', minute: '2-digit', second: '2-digit'
+                day: '2-digit', month: '2-digit', year: '2-digit',
+                hour: '2-digit', minute: '2-digit'
             });
         } catch { return iso; }
     }
