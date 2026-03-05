@@ -13,7 +13,7 @@
         listEl.innerHTML = '<li style="color:#6e6e73">Lädt…</li>';
         try {
             const res = await fetch(`${API_BASE}/manage/lost-dogs`, { headers: FT_AUTH.adminHeaders() });
-            if (res.status === 401) { FT_AUTH.logout(); location.href = 'admin.html'; return; }
+            if (res.status === 401) { FT_AUTH.sessionExpired(); return; }
             if (!res.ok) throw new Error();
             const items = await res.json();
             renderList(items);
@@ -56,7 +56,7 @@
                 headers: FT_AUTH.adminHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({ location })
             });
-            if (res.status === 401) { FT_AUTH.logout(); location.href = 'admin.html'; return; }
+            if (res.status === 401) { FT_AUTH.sessionExpired(); return; }
             if (!res.ok) throw new Error();
             inputEl.value = '';
             showToast(`„${location}" hinzugefügt`);
@@ -76,7 +76,7 @@
                 method: 'DELETE',
                 headers: FT_AUTH.adminHeaders()
             });
-            if (res.status === 401) { FT_AUTH.logout(); location.href = 'admin.html'; return; }
+            if (res.status === 401) { FT_AUTH.sessionExpired(); return; }
             if (!res.ok) throw new Error();
             showToast(`„${location}" gelöscht`);
             await loadDogs();

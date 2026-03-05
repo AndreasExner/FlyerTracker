@@ -184,7 +184,7 @@
             const res = await fetch(`${API_BASE}/manage/gps-records?${params}`, {
                 headers: FT_AUTH.adminHeaders()
             });
-            if (res.status === 401) { FT_AUTH.logout(); location.href = 'admin.html'; return; }
+            if (res.status === 401) { FT_AUTH.sessionExpired(); return; }
             if (!res.ok) throw new Error();
 
             const data = await res.json();
@@ -462,7 +462,7 @@
                 headers: FT_AUTH.adminHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify(payload)
             });
-            if (res.status === 401) { FT_AUTH.logout(); location.href = 'admin.html'; return; }
+            if (res.status === 401) { FT_AUTH.sessionExpired(); return; }
             if (!res.ok) throw new Error();
 
             showToast('Position aktualisiert');

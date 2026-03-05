@@ -58,7 +58,7 @@
         listEl.innerHTML = '<li style="color:#6e6e73">Lädt…</li>';
         try {
             const res = await fetch(`${API_BASE}/manage/categories`, { headers: FT_AUTH.adminHeaders() });
-            if (res.status === 401) { FT_AUTH.logout(); location.href = 'admin.html'; return; }
+            if (res.status === 401) { FT_AUTH.sessionExpired(); return; }
             if (!res.ok) throw new Error();
             const items = await res.json();
             renderList(items);
@@ -120,7 +120,7 @@
                     headers: FT_AUTH.adminHeaders({ 'Content-Type': 'application/json' }),
                     body: JSON.stringify({ svgSymbol: ta.value })
                 });
-                if (res.status === 401) { FT_AUTH.logout(); location.href = 'admin.html'; return; }
+                if (res.status === 401) { FT_AUTH.sessionExpired(); return; }
                 if (!res.ok) throw new Error();
                 showToast('SVG gespeichert');
             } catch {
@@ -140,7 +140,7 @@
                     method: 'DELETE',
                     headers: FT_AUTH.adminHeaders()
                 });
-                if (res.status === 401) { FT_AUTH.logout(); location.href = 'admin.html'; return; }
+                if (res.status === 401) { FT_AUTH.sessionExpired(); return; }
                 if (!res.ok) throw new Error();
                 showToast(`„${name}" gelöscht`);
                 await loadCategories();
@@ -166,7 +166,7 @@
                 headers: FT_AUTH.adminHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({ name, svgSymbol: svgInputEl.value.trim() })
             });
-            if (res.status === 401) { FT_AUTH.logout(); location.href = 'admin.html'; return; }
+            if (res.status === 401) { FT_AUTH.sessionExpired(); return; }
             if (!res.ok) throw new Error();
             inputEl.value = '';
             svgInputEl.value = '';

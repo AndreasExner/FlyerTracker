@@ -58,7 +58,19 @@ const FT_AUTH = (function () {
         sessionStorage.removeItem(TOKEN_KEY);
     }
 
+    /** Handle 401 — show brief message, then redirect */
+    function sessionExpired() {
+        logout();
+        // Show a brief toast before redirecting
+        const t = document.getElementById('toast');
+        if (t) {
+            t.textContent = 'Sitzung abgelaufen – bitte erneut anmelden';
+            t.className = 'toast error';
+        }
+        setTimeout(() => { location.href = 'admin.html'; }, 1500);
+    }
+
     function getApiBase() { return API_BASE; }
 
-    return { publicHeaders, adminHeaders, login, isLoggedIn, logout, getApiBase };
+    return { publicHeaders, adminHeaders, login, isLoggedIn, logout, sessionExpired, getApiBase };
 })();

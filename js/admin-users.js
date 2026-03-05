@@ -16,7 +16,7 @@
     function showToast(msg, ok = true) {
         const t = document.getElementById('toast');
         t.textContent = msg;
-        t.className = 'toast ' + (ok ? 'toast-ok' : 'toast-err');
+        t.className = 'toast' + (ok ? '' : ' error');
         setTimeout(() => t.className = 'toast hidden', 2500);
     }
 
@@ -35,7 +35,7 @@
     async function apiCall(url, opts = {}) {
         try {
             const res = await fetch(url, opts);
-            if (res.status === 401) { location.href = 'admin.html'; return null; }
+            if (res.status === 401) { FT_AUTH.sessionExpired(); return null; }
             return res;
         } catch (e) {
             showToast('Netzwerkfehler', false);
