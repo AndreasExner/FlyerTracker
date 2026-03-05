@@ -40,27 +40,6 @@
     --shadow-medium: rgba(0, 0, 0, 0.5);
 }
 
-@media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-        --bg-primary: #1c1c1e;
-        --bg-card: #2c2c2e;
-        --bg-badge: #3a3a3c;
-        --bg-banner: #000000;
-        --text-primary: #f5f5f7;
-        --text-secondary: #98989d;
-        --text-muted: #636366;
-        --border-color: #48484a;
-        --border-light: #3a3a3c;
-        --accent: #0a84ff;
-        --accent-hover: #409cff;
-        --danger: #ff453a;
-        --success: #30d158;
-        --warning: #ff9f0a;
-        --shadow-light: rgba(0, 0, 0, 0.3);
-        --shadow-medium: rgba(0, 0, 0, 0.5);
-    }
-}
-
 /* ── Site banner ──────────────────────────────────────────────── */
 .site-banner {
     background: var(--bg-banner);

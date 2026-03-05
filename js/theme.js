@@ -7,16 +7,12 @@
     // Apply saved theme on load (before paint)
     function applySavedTheme() {
         const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) {
-            document.documentElement.setAttribute('data-theme', saved);
-        }
-        // If no saved preference, system preference via CSS media query handles it
+        // Default to light mode if no preference saved
+        document.documentElement.setAttribute('data-theme', saved || 'light');
     }
 
     function getCurrentTheme() {
-        const attr = document.documentElement.getAttribute('data-theme');
-        if (attr) return attr;
-        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        return document.documentElement.getAttribute('data-theme') || 'light';
     }
 
     function toggleTheme() {

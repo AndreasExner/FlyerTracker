@@ -1,9 +1,10 @@
 // ── Admin Hamburger Navigation ──────────────────────────────────
 (function () {
-    // Only inject on admin sub-pages (not on admin.html login/menu itself)
+    // Inject on admin sub-pages and admin.html menu page
     const path = location.pathname;
     const isSubPage = /admin-(gpsrecords|map|names|lostdogs|categories|users)\.html$/i.test(path);
-    if (!isSubPage) return;
+    const isAdminHome = /admin\.html$/i.test(path);
+    if (!isSubPage && !isAdminHome) return;
 
     const pages = [
         { href: 'admin-gpsrecords.html', icon: '📍', label: 'GPS-Daten' },
@@ -21,7 +22,7 @@
     drawer.className = 'nav-drawer';
 
     // Home link
-    drawer.innerHTML = `<a href="admin.html"><span class="nav-icon">🏠</span> Übersicht</a><div class="nav-divider"></div>`;
+    drawer.innerHTML = `<a href="admin.html"${isAdminHome ? ' class="active"' : ''}><span class="nav-icon">🏠</span> Übersicht</a><div class="nav-divider"></div>`;
 
     // Page links
     const currentFile = path.split('/').pop();
