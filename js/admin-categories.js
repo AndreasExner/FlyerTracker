@@ -7,6 +7,7 @@
     const inputEl = document.getElementById('newCategory');
     const svgInputEl = document.getElementById('newSvg');
     const previewEl = document.getElementById('newPreview');
+    const svgFileEl = document.getElementById('newSvgFile');
     const addBtn = document.getElementById('addBtn');
     const toastEl = document.getElementById('toast');
     let toastTimeout = null;
@@ -19,6 +20,33 @@
             `<path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24C24 5.4 18.6 0 12 0z" fill="${color}"/>` +
             inner + `</svg>`;
     }
+
+    /** Extract inner elements from an SVG file string (strip the outer <svg> wrapper) */
+    function extractSvgInner(svgText) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(svgText, 'image/svg+xml');
+        const svgEl = doc.querySelector('svg');
+        if (!svgEl) return svgText.trim();
+        return svgEl.innerHTML.trim();
+    }
+
+    /** Handle SVG file upload → fill textarea + update preview */
+    function handleSvgFile(file, textarea, previewEl) {
+        if (!file || !file.name.toLowerCase().endsWith('.svg')) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            const inner = extractSvgInner(reader.result);
+            textarea.value = inner;
+            textarea.dispatchEvent(new Event('input'));
+        };
+        reader.readAsText(file);
+    }
+
+    // File upload for new category
+    svgFileEl.addEventListener('change', () => {
+        handleSvgFile(svgFileEl.files[0], svgInputEl, previewEl);
+        svgFileEl.value = '';
+    });
 
     // Live preview while typing new SVG
     svgInputEl.addEventListener('input', () => {
@@ -53,6 +81,7 @@
                 `<div style="flex:1">` +
                     `<div class="item-name">${esc(item.name)}</div>` +
                     `<textarea rows="2" data-rk="${esc(item.rowKey)}">${esc(item.svgSymbol || '')}</textarea>` +
+                    `<label class="upload-label">SVG-Datei… <input type="file" accept=".svg" class="upload-svg-input"></label>` +
                 `</div>` +
                 `<div class="category-actions">` +
                     `<button class="btn btn-primary btn-sm save-svg-btn" data-rk="${esc(item.rowKey)}">SVG speichern</button>` +
@@ -64,6 +93,13 @@
             const prev = li.querySelector('.svg-preview');
             ta.addEventListener('input', () => {
                 prev.innerHTML = markerPreview(ta.value.trim());
+            });
+
+            // File upload for existing category
+            const fileInput = li.querySelector('.upload-svg-input');
+            fileInput.addEventListener('change', () => {
+                handleSvgFile(fileInput.files[0], ta, prev);
+                fileInput.value = '';
             });
 
             listEl.appendChild(li);
