@@ -345,6 +345,8 @@ public class GPSRecordsFunction
         public string? Category { get; init; }
         public string? Comment { get; init; }
         public bool DeletePhoto { get; init; }
+        public double? Latitude { get; init; }
+        public double? Longitude { get; init; }
     }
 
     private record UpdateKey
@@ -390,6 +392,10 @@ public class GPSRecordsFunction
                         entity["Category"] = body.Category;
                     if (body.Comment is not null) // allow empty string to clear
                         entity["Comment"] = body.Comment.Length > 40 ? body.Comment[..40] : body.Comment;
+                    if (body.Latitude.HasValue)
+                        entity["Latitude"] = body.Latitude.Value;
+                    if (body.Longitude.HasValue)
+                        entity["Longitude"] = body.Longitude.Value;
 
                     // Delete photo if requested
                     if (body.DeletePhoto)

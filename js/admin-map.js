@@ -280,6 +280,8 @@
                 const categoryHtml = r.category ? `<br>🏷️ ${escHtml(r.category)}` : '';
                 const commentHtml = r.comment ? `<br>💬 ${escHtml(r.comment)}` : '';
 
+                const editBtnHtml = `<div style="margin-top:6px;"><button class="btn btn-primary btn-sm edit-marker-btn" data-pk="${escHtml(r.partitionKey)}" data-rk="${escHtml(r.rowKey)}" style="font-size:0.75rem;padding:3px 10px;">✏️ Bearbeiten</button></div>`;
+
                 marker.bindPopup(
                     `<strong>${escHtml(r.name)}</strong><br>` +
                     `🐕 ${escHtml(r.lostDog)}` +
@@ -287,9 +289,12 @@
                     `📍 ${r.latitude.toFixed(6)}, ${r.longitude.toFixed(6)}<br>` +
                     `🎯 ±${r.accuracy.toFixed(0)} m<br>` +
                     `🕐 ${formatDate(r.recordedAt)}` +
-                    photoHtml + navHtml,
+                    photoHtml + navHtml + editBtnHtml,
                     { maxWidth: 280 }
                 );
+
+                // Store record data on marker for editing
+                marker._ftRecord = r;
 
                 clusterGroup.addLayer(marker);
                 bounds.push([r.latitude, r.longitude]);
@@ -388,6 +393,158 @@
         toastEl.className = 'toast' + (isError ? ' error' : '');
         toastTimeout = setTimeout(() => toastEl.classList.add('hidden'), 3000);
     }
+
+    // ── Edit single marker ────────────────────────────────────────
+    const editModal = document.getElementById('editModal');
+    const editNameEl = document.getElementById('editName');
+    const editDogEl = document.getElementById('editDog');
+    const editCategoryEl = document.getElementById('editCategory');
+    const editCommentEl = document.getElementById('editComment');
+    const editDeletePhotoEl = document.getElementById('editDeletePhoto');
+    const editPhotoRow = document.getElementById('editPhotoRow');
+    const editCoordsHint = document.getElementById('editCoordsHint');
+    const editSaveBtn = document.getElementById('editSaveBtn');
+    const editCancelBtn = document.getElementById('editCancelBtn');
+
+    let editDropdownsLoaded = false;
+    let editingMarker = null;          // the Leaflet marker being edited
+    let editOriginalLatLng = null;     // original position for cancel
+    let editRecord = null;             // the record object
+
+    async function loadEditDropdowns() {
+        if (editDropdownsLoaded) return;
+        try {
+            const hdrs = FT_AUTH.publicHeaders();
+            const [namesRes, dogsRes, catsRes] = await Promise.all([
+                fetch(`${API_BASE}/names`, { headers: hdrs }),
+                fetch(`${API_BASE}/lost-dogs`, { headers: hdrs }),
+                fetch(`${API_BASE}/categories`, { headers: hdrs })
+            ]);
+            (await namesRes.json()).forEach(n => { const o = document.createElement('option'); o.value = n; o.textContent = n; editNameEl.appendChild(o); });
+            (await dogsRes.json()).forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; editDogEl.appendChild(o); });
+            (await catsRes.json()).forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; editCategoryEl.appendChild(o); });
+            editDropdownsLoaded = true;
+        } catch { showToast('Dropdown-Daten konnten nicht geladen werden', true); }
+    }
+
+    function updateCoordsHint() {
+        if (!editingMarker) return;
+        const pos = editingMarker.getLatLng();
+        editCoordsHint.textContent = `📍 Neue Position: ${pos.lat.toFixed(6)}, ${pos.lng.toFixed(6)}`;
+    }
+
+    // Delegate click on edit button inside popup
+    document.addEventListener('click', async (e) => {
+        const btn = e.target.closest('.edit-marker-btn');
+        if (!btn) return;
+        e.preventDefault();
+
+        const pk = btn.dataset.pk;
+        const rk = btn.dataset.rk;
+
+        // Find the marker in the cluster group
+        let targetMarker = null;
+        clusterGroup.eachLayer(m => {
+            if (m._ftRecord && m._ftRecord.partitionKey === pk && m._ftRecord.rowKey === rk) {
+                targetMarker = m;
+            }
+        });
+        if (!targetMarker) return;
+
+        // Close popup and start editing
+        map.closePopup();
+        await openEditForMarker(targetMarker);
+    });
+
+    async function openEditForMarker(marker) {
+        await loadEditDropdowns();
+
+        editingMarker = marker;
+        editRecord = marker._ftRecord;
+        editOriginalLatLng = marker.getLatLng();
+
+        // Make marker draggable
+        marker.dragging.enable();
+        marker.on('drag', updateCoordsHint);
+
+        // Pre-fill fields
+        editNameEl.value = editRecord.name || '';
+        editDogEl.value = editRecord.lostDog || '';
+        editCategoryEl.value = editRecord.category || '';
+        editCommentEl.value = editRecord.comment || '';
+        editDeletePhotoEl.checked = false;
+        editPhotoRow.style.display = editRecord.photoUrl ? '' : 'none';
+        updateCoordsHint();
+
+        editModal.classList.remove('hidden');
+    }
+
+    function cancelEdit() {
+        if (editingMarker) {
+            editingMarker.setLatLng(editOriginalLatLng);
+            editingMarker.dragging.disable();
+            editingMarker.off('drag', updateCoordsHint);
+        }
+        editingMarker = null;
+        editRecord = null;
+        editModal.classList.add('hidden');
+    }
+
+    editCancelBtn.addEventListener('click', cancelEdit);
+    editModal.addEventListener('click', e => { if (e.target === editModal) cancelEdit(); });
+
+    editSaveBtn.addEventListener('click', async () => {
+        if (!editingMarker || !editRecord) return;
+
+        const newPos = editingMarker.getLatLng();
+        const payload = {
+            keys: [{ partitionKey: editRecord.partitionKey, rowKey: editRecord.rowKey }],
+            name: editNameEl.value || undefined,
+            lostDog: editDogEl.value || undefined,
+            category: editCategoryEl.value,
+            comment: editCommentEl.value,
+            deletePhoto: editDeletePhotoEl.checked,
+            latitude: newPos.lat,
+            longitude: newPos.lng
+        };
+
+        editSaveBtn.disabled = true;
+        editSaveBtn.textContent = 'Wird gespeichert…';
+
+        try {
+            const res = await fetch(`${API_BASE}/manage/gps-records/update`, {
+                method: 'POST',
+                headers: FT_AUTH.adminHeaders({ 'Content-Type': 'application/json' }),
+                body: JSON.stringify(payload)
+            });
+            if (res.status === 401) { FT_AUTH.logout(); location.href = 'admin.html'; return; }
+            if (!res.ok) throw new Error();
+
+            const result = await res.json();
+            showToast(`${result.updated} Eintrag aktualisiert`);
+
+            // Clean up editing state
+            editingMarker.dragging.disable();
+            editingMarker.off('drag', updateCoordsHint);
+            editingMarker = null;
+            editRecord = null;
+            editModal.classList.add('hidden');
+
+            // Reload all data to reflect changes
+            clusterGroup.clearLayers();
+            circlesLayer.clearLayers();
+            routesLayer.clearLayers();
+            legendEl.innerHTML = '';
+            Object.keys(dogColorMap).forEach(k => delete dogColorMap[k]);
+            colorIdx = 0;
+            await loadAndDisplay();
+        } catch {
+            showToast('Fehler beim Speichern', true);
+        } finally {
+            editSaveBtn.disabled = false;
+            editSaveBtn.textContent = 'Speichern';
+        }
+    });
 
     // ── Start ────────────────────────────────────────────────────
     loadAndDisplay();
