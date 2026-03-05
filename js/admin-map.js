@@ -52,7 +52,7 @@
         const inner = categorySymbols[category] || `<circle cx="12" cy="12" r="5" fill="#fff"/>`;
         return L.divIcon({
             className: '',
-            html: `<svg width="24" height="36" viewBox="0 0 24 36" xmlns="http://www.w3.org/2000/svg">
+            html: `<svg width="24" height="36" viewBox="0 0 24 36" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0px 3px 3px rgba(0,0,0,0.5));">
                 <path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24C24 5.4 18.6 0 12 0z" fill="${color}"/>
                 ${inner}
             </svg>`,
@@ -266,16 +266,23 @@
 
                 const editBtnHtml = `<div style="margin-top:6px;"><button class="btn btn-primary btn-sm edit-marker-btn" data-pk="${escHtml(r.partitionKey)}" data-rk="${escHtml(r.rowKey)}" style="font-size:0.75rem;padding:3px 10px;">✏️ Bearbeiten</button></div>`;
 
-                marker.bindPopup(
-                    `<strong>${escHtml(r.name)}</strong><br>` +
+                const popupHtml = `<strong>${escHtml(r.name)}</strong><br>` +
                     `🐕 ${escHtml(r.lostDog)}` +
                     categoryHtml + commentHtml + `<br>` +
                     `📍 ${r.latitude.toFixed(6)}, ${r.longitude.toFixed(6)}<br>` +
                     `🎯 ±${r.accuracy.toFixed(0)} m<br>` +
                     `🕐 ${formatDate(r.recordedAt)}` +
-                    photoHtml + navHtml + editBtnHtml,
-                    { maxWidth: 280 }
-                );
+                    photoHtml + navHtml + editBtnHtml;
+
+                marker.on('click', function(e) {
+                    if (window.innerWidth <= 768) {
+                        showBottomSheet(popupHtml);
+                    } else {
+                        if (!marker.getPopup()) {
+                            marker.bindPopup(popupHtml, { maxWidth: 280 }).openPopup();
+                        }
+                    }
+                });
 
                 // Store record data on marker for editing
                 marker._ftRecord = r;
@@ -485,3 +492,24 @@
     // ── Start ────────────────────────────────────────────────────
     loadAndDisplay();
 })();
+
+// --- Bottom Sheet Logic ---
+document.body.insertAdjacentHTML('beforeend', 
+    <div id="dim-overlay" class="dim-overlay"></div>
+    <div id="mobile-bottom-sheet">
+        <button id="mobile-bottom-sheet-close">&times;</button>
+        <div id="mobile-bottom-sheet-content"></div>
+    </div>
+);
+document.getElementById('mobile-bottom-sheet-close').addEventListener('click', closeBottomSheet);
+document.getElementById('dim-overlay').addEventListener('click', closeBottomSheet);
+
+function showBottomSheet(html) {
+    document.getElementById('mobile-bottom-sheet-content').innerHTML = html;
+    document.getElementById('dim-overlay').classList.add('open');
+    document.getElementById('mobile-bottom-sheet').classList.add('open');
+}
+function closeBottomSheet() {
+    document.getElementById('dim-overlay').classList.remove('open');
+    document.getElementById('mobile-bottom-sheet').classList.remove('open');
+}

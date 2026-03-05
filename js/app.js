@@ -216,7 +216,7 @@
         if (saveBtnEl.disabled) return;
 
         saveBtnEl.classList.add('saving');
-        saveBtnEl.textContent = 'WIRD GESPEICHERT…';
+        saveBtnEl.innerHTML = '<span class="gps-spinner"></span>WIRD GESPEICHERT…';
 
         try {
             const position = await getCurrentPosition();
