@@ -177,9 +177,7 @@
 
     // ── Helpers ──────────────────────────────────────────────────
     function esc(s) {
-        const d = document.createElement('div');
-        d.textContent = s;
-        return d.innerHTML;
+        return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
     }
     function formatDate(iso) {
         if (!iso) return '—';

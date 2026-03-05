@@ -109,17 +109,21 @@
     });
 
     // ── Load & display records ───────────────────────────────────
+    let cachedCategorySymbols = null;
     async function loadAndDisplay() {
         try {
-            // Load category SVG symbols
-            try {
-                const catRes = await fetch(`${API_BASE}/categories`, { headers: FT_AUTH.publicHeaders() });
-                if (catRes.ok) {
-                    const cats = await catRes.json();
-                    categorySymbols = {};
-                    cats.forEach(c => { if (c.svgSymbol) categorySymbols[c.name] = c.svgSymbol; });
-                }
-            } catch { /* use defaults */ }
+            // Load category SVG symbols (cached)
+            if (!cachedCategorySymbols) {
+                try {
+                    const catRes = await fetch(`${API_BASE}/categories`, { headers: FT_AUTH.publicHeaders() });
+                    if (catRes.ok) {
+                        const cats = await catRes.json();
+                        cachedCategorySymbols = {};
+                        cats.forEach(c => { if (c.svgSymbol) cachedCategorySymbols[c.name] = c.svgSymbol; });
+                    }
+                } catch { /* use defaults */ }
+            }
+            categorySymbols = cachedCategorySymbols || {};
 
             const params = new URLSearchParams();
             params.set('pageSize', 'all');
@@ -232,9 +236,7 @@
 
     // ── Helpers ──────────────────────────────────────────────────
     function escHtml(s) {
-        const d = document.createElement('div');
-        d.textContent = s || '';
-        return d.innerHTML;
+        return (s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
     }
 
     function formatDate(iso) {
