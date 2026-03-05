@@ -42,7 +42,13 @@
 
     async function addDog() {
         const location = inputEl.value.trim();
-        if (!location) return;
+        if (!location) {
+            inputEl.style.borderColor = '#ff3b30';
+            inputEl.style.boxShadow = '0 0 0 3px rgba(255,59,48,.12)';
+            inputEl.focus();
+            setTimeout(() => { inputEl.style.borderColor = ''; inputEl.style.boxShadow = ''; }, 2000);
+            return;
+        }
         addBtn.disabled = true;
         try {
             const res = await fetch(`${API_BASE}/manage/lost-dogs`, {

@@ -25,6 +25,16 @@
 
     let toastTimeout = null;
     let selectedPhotoBlob = null; // compressed Blob ready for upload
+    const charCounterEl = document.getElementById('charCounter');
+
+    // ── Character counter ────────────────────────────────────────────
+    function updateCharCounter() {
+        const len = commentEl.value.length;
+        const max = 40;
+        charCounterEl.textContent = `${len} / ${max}`;
+        charCounterEl.classList.toggle('warn', len >= 30 && len < max);
+        charCounterEl.classList.toggle('full', len >= max);
+    }
 
     // ── Initialisation ───────────────────────────────────────────────
     async function init() {
@@ -36,6 +46,7 @@
         lostDogEl.addEventListener('change', onSelectionChange);
         categoryEl.addEventListener('change', onSelectionChange);
         saveBtnEl.addEventListener('click', onSaveLocation);
+        commentEl.addEventListener('input', updateCharCounter);
 
         // Edit / Map buttons
         editBtnEl.addEventListener('click', onEditRecords);
@@ -195,6 +206,11 @@
         const hasNameAndDog = !!(userNameEl.value && lostDogEl.value);
         editBtnEl.disabled = !hasNameAndDog;
         mapBtnEl.disabled = !hasNameAndDog;
+
+        // Highlight missing required fields
+        [userNameEl, lostDogEl, categoryEl].forEach(el => {
+            el.classList.toggle('missing', !el.value);
+        });
     }
 
     function onEditRecords() {
