@@ -336,4 +336,111 @@ public class GPSRecordsFunction
         public string LostDog { get; init; } = "";
         public List<DeleteKey> Keys { get; init; } = new();
     }
+
+    private record UpdateRequest
+    {
+        public List<UpdateKey> Keys { get; init; } = new();
+        public string? Name { get; init; }
+        public string? LostDog { get; init; }
+        public string? Category { get; init; }
+        public string? Comment { get; init; }
+        public bool DeletePhoto { get; init; }
+    }
+
+    private record UpdateKey
+    {
+        public string PartitionKey { get; init; } = "";
+        public string RowKey { get; init; } = "";
+    }
+
+    [Function("UpdateGPSRecords")]
+    public async Task<IActionResult> UpdateGPSRecords(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "manage/gps-records/update")] HttpRequest req)
+    {
+        try
+        {
+            if (!_apiKey.IsValid(req))
+                return new ObjectResult(new { error = "Ungültiger API-Key" }) { StatusCode = 403 };
+            if (!_adminAuth.ValidateToken(req))
+                return AdminAuth.Unauthorized();
+
+            var body = await JsonSerializer.DeserializeAsync<UpdateRequest>(req.Body,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+            if (body is null || body.Keys is null || body.Keys.Count == 0)
+                return new BadRequestObjectResult(new { error = "Keine Einträge zum Bearbeiten" });
+
+            var tableClient = _tableService.GetTableClient("GPSRecords");
+            var container = _blobService.GetBlobContainerClient(PhotoContainer);
+            int updated = 0;
+
+            foreach (var key in body.Keys)
+            {
+                try
+                {
+                    var response = await tableClient.GetEntityAsync<TableEntity>(key.PartitionKey, key.RowKey);
+                    var entity = response.Value;
+
+                    bool nameChanged = !string.IsNullOrEmpty(body.Name) && body.Name != entity.PartitionKey;
+
+                    // Update fields (only if provided)
+                    if (!string.IsNullOrEmpty(body.LostDog))
+                        entity["LostDog"] = body.LostDog;
+                    if (body.Category is not null) // allow empty string to clear
+                        entity["Category"] = body.Category;
+                    if (body.Comment is not null) // allow empty string to clear
+                        entity["Comment"] = body.Comment.Length > 40 ? body.Comment[..40] : body.Comment;
+
+                    // Delete photo if requested
+                    if (body.DeletePhoto)
+                    {
+                        var photoUrl = entity.GetString("PhotoUrl");
+                        if (!string.IsNullOrEmpty(photoUrl))
+                        {
+                            try
+                            {
+                                var uri = new Uri(photoUrl);
+                                var blobName = string.Join("/", uri.Segments.Skip(2)).TrimStart('/');
+                                await container.DeleteBlobIfExistsAsync(blobName);
+                            }
+                            catch { /* best effort */ }
+                        }
+                        entity["PhotoUrl"] = "";
+                    }
+
+                    if (nameChanged)
+                    {
+                        // PartitionKey changed → create new entity, delete old
+                        var newEntity = new TableEntity(body.Name, entity.RowKey);
+                        foreach (var prop in entity)
+                        {
+                            if (prop.Key is "odata.etag" or "PartitionKey" or "RowKey" or "Timestamp")
+                                continue;
+                            newEntity[prop.Key] = prop.Value;
+                        }
+                        await tableClient.AddEntityAsync(newEntity);
+                        await tableClient.DeleteEntityAsync(key.PartitionKey, key.RowKey);
+                    }
+                    else
+                    {
+                        await tableClient.UpdateEntityAsync(entity, entity.ETag, TableUpdateMode.Replace);
+                    }
+
+                    updated++;
+                }
+                catch (Azure.RequestFailedException ex) when (ex.Status == 404)
+                {
+                    _logger.LogWarning("GPS record not found for update: {PK}/{RK}", key.PartitionKey, key.RowKey);
+                }
+            }
+
+            _logger.LogInformation("Updated {Count} GPS records", updated);
+            return new OkObjectResult(new { updated, message = $"{updated} Einträge aktualisiert" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating GPS records");
+            return new StatusCodeResult(500);
+        }
+    }
 }

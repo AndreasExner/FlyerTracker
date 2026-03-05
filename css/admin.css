@@ -475,9 +475,75 @@ html, body {
     text-align: center;
 }
 
-/* ── Lightbox overlay ────────────────────────────────────────── */
-.lightbox {
+/* ── Table actions row ────────────────────────────────────────── */
+.table-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin: 0.75rem 0 0;
+}
+
+/* ── Edit modal ──────────────────────────────────────────────── */
+.edit-modal {
     position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 3000;
+}
+.edit-modal.hidden { display: none; }
+
+.edit-modal-content {
+    background: #fff;
+    border-radius: 14px;
+    padding: 1.5rem;
+    width: 92vw;
+    max-width: 420px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+}
+.edit-modal-content h2 {
+    margin: 0 0 1rem;
+    font-size: 1.15rem;
+    color: #1d1d1f;
+}
+.edit-modal-content .form-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+.edit-modal-content label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.85rem;
+    color: #6e6e73;
+}
+.edit-modal-content select,
+.edit-modal-content input[type="text"] {
+    padding: 0.5rem;
+    border: 1px solid #d2d2d7;
+    border-radius: 8px;
+    font-size: 0.95rem;
+}
+.edit-photo-delete {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: #ff3b30;
+    margin-bottom: 1rem;
+    cursor: pointer;
+}
+.edit-modal-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}
+
+/* ── Lightbox overlay ────────────────────────────────────────── */
+.lightbox {    position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.85);
     display: flex;

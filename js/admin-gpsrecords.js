@@ -15,6 +15,7 @@
     const pageInfoEl = document.getElementById('pageInfo');
     const pageBtnsEl = document.getElementById('pageButtons');
     const deleteBtn = document.getElementById('deleteSelectedBtn');
+    const editBtn = document.getElementById('editSelectedBtn');
     const showMapBtn = document.getElementById('showMapBtn');
     const exportCsvBtn = document.getElementById('exportCsvBtn');
     const exportKmlBtn = document.getElementById('exportKmlBtn');
@@ -186,6 +187,8 @@
         const n = getSelected().length;
         deleteBtn.disabled = n === 0;
         deleteBtn.textContent = n > 0 ? `Ausgewählte löschen (${n})` : 'Ausgewählte löschen';
+        editBtn.disabled = n === 0;
+        editBtn.textContent = n > 0 ? `Ausgewählte bearbeiten (${n})` : 'Ausgewählte bearbeiten';
     }
 
     // ── Delete selected ──────────────────────────────────────────
@@ -640,4 +643,128 @@
 
     // ── Init ─────────────────────────────────────────────────────
     loadRecords();
+
+    // ── Edit Modal ───────────────────────────────────────────────
+    const editModal = document.getElementById('editModal');
+    const editNameEl = document.getElementById('editName');
+    const editDogEl = document.getElementById('editDog');
+    const editCategoryEl = document.getElementById('editCategory');
+    const editCommentEl = document.getElementById('editComment');
+    const editDeletePhotoEl = document.getElementById('editDeletePhoto');
+    const editPhotoRow = document.getElementById('editPhotoRow');
+    const editSaveBtn = document.getElementById('editSaveBtn');
+    const editCancelBtn = document.getElementById('editCancelBtn');
+    const editModalTitle = document.getElementById('editModalTitle');
+
+    let editDropdownsLoaded = false;
+
+    async function loadEditDropdowns() {
+        if (editDropdownsLoaded) return;
+        try {
+            const hdrs = FT_AUTH.publicHeaders();
+            const [namesRes, dogsRes, catsRes] = await Promise.all([
+                fetch(`${API_BASE}/names`, { headers: hdrs }),
+                fetch(`${API_BASE}/lost-dogs`, { headers: hdrs }),
+                fetch(`${API_BASE}/categories`, { headers: hdrs })
+            ]);
+            const names = await namesRes.json();
+            const dogs = await dogsRes.json();
+            const cats = await catsRes.json();
+
+            names.forEach(n => { const o = document.createElement('option'); o.value = n; o.textContent = n; editNameEl.appendChild(o); });
+            dogs.forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; editDogEl.appendChild(o); });
+            cats.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; editCategoryEl.appendChild(o); });
+            editDropdownsLoaded = true;
+        } catch {
+            showToast('Dropdown-Daten konnten nicht geladen werden', true);
+        }
+    }
+
+    editBtn.addEventListener('click', async () => {
+        const sel = getSelected();
+        if (sel.length === 0) return;
+
+        await loadEditDropdowns();
+
+        // Reset
+        editNameEl.value = '';
+        editDogEl.value = '';
+        editCategoryEl.value = '';
+        editCommentEl.value = '';
+        editDeletePhotoEl.checked = false;
+
+        // Check if any selected records have photos
+        const selKeys = sel.map(s => s.partitionKey + '|' + s.rowKey);
+        const hasPhoto = data.records.some(r => selKeys.includes(r.partitionKey + '|' + r.rowKey) && r.photoUrl);
+        editPhotoRow.style.display = hasPhoto ? '' : 'none';
+
+        if (sel.length === 1) {
+            // Pre-fill with current values for single record
+            const rec = data.records.find(r => r.partitionKey === sel[0].partitionKey && r.rowKey === sel[0].rowKey);
+            if (rec) {
+                editNameEl.value = rec.name || '';
+                editDogEl.value = rec.lostDog || '';
+                editCategoryEl.value = rec.category || '';
+                editCommentEl.value = rec.comment || '';
+            }
+            editModalTitle.textContent = 'Eintrag bearbeiten';
+        } else {
+            editModalTitle.textContent = `${sel.length} Einträge bearbeiten`;
+        }
+
+        editModal.classList.remove('hidden');
+    });
+
+    editCancelBtn.addEventListener('click', () => {
+        editModal.classList.add('hidden');
+    });
+    editModal.addEventListener('click', e => {
+        if (e.target === editModal) editModal.classList.add('hidden');
+    });
+
+    editSaveBtn.addEventListener('click', async () => {
+        const sel = getSelected();
+        if (sel.length === 0) return;
+
+        const payload = {
+            keys: sel,
+            deletePhoto: editDeletePhotoEl.checked
+        };
+
+        // For single edit, always send current values (even unchanged)
+        // For bulk edit, only send non-empty fields
+        if (sel.length === 1) {
+            payload.name = editNameEl.value || undefined;
+            payload.lostDog = editDogEl.value || undefined;
+            payload.category = editCategoryEl.value; // allow empty to clear
+            payload.comment = editCommentEl.value;     // allow empty to clear
+        } else {
+            if (editNameEl.value) payload.name = editNameEl.value;
+            if (editDogEl.value) payload.lostDog = editDogEl.value;
+            if (editCategoryEl.value) payload.category = editCategoryEl.value;
+            if (editCommentEl.value) payload.comment = editCommentEl.value;
+        }
+
+        editSaveBtn.disabled = true;
+        editSaveBtn.textContent = 'Wird gespeichert…';
+
+        try {
+            const res = await fetch(`${API_BASE}/manage/gps-records/update`, {
+                method: 'POST',
+                headers: FT_AUTH.adminHeaders({ 'Content-Type': 'application/json' }),
+                body: JSON.stringify(payload)
+            });
+            if (res.status === 401) { FT_AUTH.logout(); location.href = 'admin.html'; return; }
+            if (!res.ok) throw new Error();
+            const result = await res.json();
+            showToast(`${result.updated} Einträge aktualisiert`);
+            editModal.classList.add('hidden');
+            await loadRecords();
+        } catch {
+            showToast('Fehler beim Speichern', true);
+        } finally {
+            editSaveBtn.disabled = false;
+            editSaveBtn.textContent = 'Speichern';
+        }
+    });
 })();
