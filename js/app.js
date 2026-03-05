@@ -271,7 +271,7 @@
                 removePhoto();
                 commentEl.value = '';
                 updateCharCounter();
-                updatePendingBadge();
+                updateStatusBadge();
                 return;
             }
 
@@ -419,41 +419,60 @@
         if (synced > 0) {
             showToast(`✓ ${synced} Offline-Eintr${synced === 1 ? 'ag' : 'äge'} übertragen`);
         }
-        updatePendingBadge();
+        updateStatusBadge();
     }
 
-    // ── Pending badge ────────────────────────────────────────────
-    async function updatePendingBadge() {
-        if (typeof FT_OFFLINE === 'undefined') return;
-        const count = await FT_OFFLINE.pendingCount();
-        let badge = document.getElementById('pendingBadge');
-        if (count === 0) {
-            if (badge) badge.remove();
-            return;
-        }
+    // ── Status badge (Offline / Pending) ────────────────────────
+    const BADGE_STYLE = 'position:fixed;top:0.6rem;left:0.75rem;font-size:0.75rem;font-weight:700;padding:0.3rem 0.6rem;border-radius:20px;z-index:5000;box-shadow:0 2px 8px rgba(0,0,0,0.15);';
+
+    function getOrCreateBadge() {
+        let badge = document.getElementById('statusBadge');
         if (!badge) {
             badge = document.createElement('div');
-            badge.id = 'pendingBadge';
-            badge.style.cssText = 'position:fixed;top:0.6rem;left:0.75rem;background:var(--warning);color:#fff;font-size:0.75rem;font-weight:700;padding:0.3rem 0.6rem;border-radius:20px;z-index:5000;box-shadow:0 2px 8px rgba(0,0,0,0.15);';
+            badge.id = 'statusBadge';
             document.body.appendChild(badge);
         }
-        badge.textContent = `📶 ${count} ausstehend`;
+        return badge;
+    }
+
+    function removeBadge() {
+        const badge = document.getElementById('statusBadge');
+        if (badge) badge.remove();
+    }
+
+    async function updateStatusBadge() {
+        const pendingCount = (typeof FT_OFFLINE !== 'undefined') ? await FT_OFFLINE.pendingCount() : 0;
+
+        if (pendingCount > 0) {
+            // Show pending count
+            const badge = getOrCreateBadge();
+            badge.style.cssText = BADGE_STYLE + 'background:var(--warning);color:#fff;';
+            badge.textContent = `📶 ${pendingCount} ausstehend`;
+        } else if (!navigator.onLine) {
+            // Show offline indicator
+            const badge = getOrCreateBadge();
+            badge.style.cssText = BADGE_STYLE + 'background:var(--danger);color:#fff;';
+            badge.textContent = '⚡ Offline';
+        } else {
+            removeBadge();
+        }
     }
 
     // ── Online / Offline events ──────────────────────────────────
     window.addEventListener('online', () => {
         showToast('Verbindung wiederhergestellt');
+        updateStatusBadge();
         syncPendingEntries();
     });
     window.addEventListener('offline', () => {
         showToast('Keine Internetverbindung — Einträge werden lokal gespeichert', true);
+        updateStatusBadge();
     });
 
     // ── Start ────────────────────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', () => {
         init();
-        updatePendingBadge();
-        // Try syncing any queued entries on load
+        updateStatusBadge();
         if (navigator.onLine) syncPendingEntries();
     });
 })();
