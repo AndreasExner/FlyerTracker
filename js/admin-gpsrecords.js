@@ -5,7 +5,9 @@
 
     const filterDogEl = document.getElementById('filterDog');
     const filterNameEl = document.getElementById('filterName');
-    const filterCategoryEl = document.getElementById('filterCategory');
+    const catBtnEl = document.getElementById('filterCategoryBtn');
+    const catDropdownEl = document.getElementById('filterCategoryDropdown');
+    const catWrapEl = document.getElementById('categoryMultiSelect');
     const sortFieldEl = document.getElementById('sortField');
     const pageSizeEl = document.getElementById('pageSize');
     const selectAllEl = document.getElementById('selectAll');
@@ -19,6 +21,19 @@
     const toastEl = document.getElementById('toast');
     let toastTimeout = null;
 
+    // ── Category multi-select helpers ────────────────────────────
+    function getSelectedCategories() {
+        return [...catDropdownEl.querySelectorAll('input:checked')].map(cb => cb.value);
+    }
+    function updateCatBtnText() {
+        const sel = getSelectedCategories();
+        if (sel.length === 0) catBtnEl.textContent = 'Alle Kategorien';
+        else if (sel.length === 1) catBtnEl.textContent = sel[0];
+        else catBtnEl.textContent = sel.length + ' Kategorien';
+    }
+    catBtnEl.addEventListener('click', e => { e.stopPropagation(); catDropdownEl.classList.toggle('hidden'); });
+    document.addEventListener('click', e => { if (!catWrapEl.contains(e.target)) catDropdownEl.classList.add('hidden'); });
+
     let currentPage = 1;
     let data = { records: [], totalCount: 0, page: 1, pageSize: 20, totalPages: 1, lostDogs: [] };
 
@@ -28,7 +43,7 @@
         const ps = pageSizeEl.value;
         const dog = filterDogEl.value;
         const name = filterNameEl.value;
-        const cat = filterCategoryEl.value;
+        const cat = getSelectedCategories().join(',');
         const params = new URLSearchParams();
         params.set('pageSize', ps);
         params.set('page', currentPage);
@@ -72,15 +87,21 @@
         });
         filterNameEl.value = currentName;
 
-        const currentCat = filterCategoryEl.value;
-        while (filterCategoryEl.options.length > 1) filterCategoryEl.remove(1);
+        const currentCat = getSelectedCategories();
+        catDropdownEl.innerHTML = '';
         categories.forEach(c => {
-            const opt = document.createElement('option');
-            opt.value = c;
-            opt.textContent = c;
-            filterCategoryEl.appendChild(opt);
+            const label = document.createElement('label');
+            label.className = 'multi-select-item';
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.value = c;
+            if (currentCat.includes(c)) cb.checked = true;
+            cb.addEventListener('change', () => { updateCatBtnText(); currentPage = 1; loadRecords(); });
+            label.appendChild(cb);
+            label.appendChild(document.createTextNode(' ' + c));
+            catDropdownEl.appendChild(label);
         });
-        filterCategoryEl.value = currentCat;
+        updateCatBtnText();
     }
 
     // ── Render table ─────────────────────────────────────────────
@@ -198,7 +219,7 @@
         // Fetch ALL records (no pagination) for export
         const dog = filterDogEl.value;
         const name = filterNameEl.value;
-        const cat = filterCategoryEl.value;
+        const cat = getSelectedCategories().join(',');
         const params = new URLSearchParams();
         params.set('pageSize', 'all');
         if (dog) params.set('lostDog', dog);
@@ -258,7 +279,7 @@
     async function exportKml() {
         const dog = filterDogEl.value;
         const name = filterNameEl.value;
-        const cat = filterCategoryEl.value;
+        const cat = getSelectedCategories().join(',');
         const params = new URLSearchParams();
         params.set('pageSize', 'all');
         if (dog) params.set('lostDog', dog);
@@ -377,7 +398,7 @@
         const params = new URLSearchParams();
         const dog = filterDogEl.value;
         const name = filterNameEl.value;
-        const cat = filterCategoryEl.value;
+        const cat = getSelectedCategories().join(',');
         if (dog) params.set('lostDog', dog);
         if (name) params.set('name', name);
         if (cat) params.set('category', cat);
@@ -390,7 +411,7 @@
     // ── Events ───────────────────────────────────────────────────
     filterDogEl.addEventListener('change', () => { currentPage = 1; loadRecords(); });
     filterNameEl.addEventListener('change', () => { currentPage = 1; loadRecords(); });
-    filterCategoryEl.addEventListener('change', () => { currentPage = 1; loadRecords(); });
+    // Category multi-select: events attached in populateFilter
     sortFieldEl.addEventListener('change', () => { sortRecords(); renderTable(); });
     pageSizeEl.addEventListener('change', () => { currentPage = 1; loadRecords(); });
 

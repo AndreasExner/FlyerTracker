@@ -135,9 +135,10 @@
             <select id="filterDog" class="map-select" title="Filter nach Hund">
                 <option value="">Alle Hunde</option>
             </select>
-            <select id="filterCategory" class="map-select" title="Filter nach Kategorie">
-                <option value="">Alle Kategorien</option>
-            </select>
+            <div class="multi-select" id="categoryMultiSelect">
+                <button class="multi-select-btn map-select" type="button" id="filterCategoryBtn">Alle Kategorien</button>
+                <div class="multi-select-dropdown hidden" id="filterCategoryDropdown"></div>
+            </div>
             <label class="toggle-badge" title="GPS-Genauigkeit als Kreis anzeigen">
                 <input type="checkbox" id="toggleCircles"> Genauigkeit
             </label>

@@ -182,6 +182,62 @@ html, body {
     background: #fff;
 }
 
+/* ── Multi-select dropdown ───────────────────────────────────── */
+.multi-select {
+    position: relative;
+    display: inline-block;
+}
+.multi-select-btn {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    border: 1px solid #d2d2d7;
+    border-radius: 8px;
+    background: #fff;
+    cursor: pointer;
+    white-space: nowrap;
+    text-align: left;
+    min-width: 10rem;
+}
+.multi-select-btn::after {
+    content: ' ▾';
+    font-size: 0.75rem;
+    color: #6e6e73;
+}
+.multi-select-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 50;
+    min-width: 100%;
+    max-height: 220px;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #d2d2d7;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.12);
+    margin-top: 2px;
+}
+.multi-select-dropdown.hidden { display: none; }
+.multi-select-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f3;
+    transition: background 0.1s;
+    white-space: nowrap;
+}
+.multi-select-item:last-child { border-bottom: none; }
+.multi-select-item:hover { background: #f0f4ff; }
+.multi-select-item input[type="checkbox"] {
+    width: 1rem;
+    height: 1rem;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
 .table-wrap {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
@@ -285,7 +341,7 @@ html, body {
 /* ── Address entry panel ─────────────────────────────────────── */
 .address-panel {
     margin-bottom: 1rem;
-    background: #fff;
+    background: #e8e8ed;
     border: 1px solid #d2d2d7;
     border-radius: 12px;
     overflow: hidden;
@@ -295,7 +351,7 @@ html, body {
     font-size: 0.9375rem;
     font-weight: 600;
     cursor: pointer;
-    background: #f5f5f7;
+    background: #dcdce0;
     border-bottom: 1px solid transparent;
     list-style: none;
     display: flex;

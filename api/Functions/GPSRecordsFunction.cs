@@ -43,7 +43,10 @@ public class GPSRecordsFunction
 
             var lostDogFilter = req.Query["lostDog"].FirstOrDefault();
             var nameFilter = req.Query["name"].FirstOrDefault();
-            var categoryFilter = req.Query["category"].FirstOrDefault();
+            var categoryFilterRaw = req.Query["category"].FirstOrDefault();
+            var categoryFilters = string.IsNullOrEmpty(categoryFilterRaw)
+                ? Array.Empty<string>()
+                : categoryFilterRaw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             var pageSizeStr = req.Query["pageSize"].FirstOrDefault();
             var pageStr = req.Query["page"].FirstOrDefault();
 
@@ -60,7 +63,7 @@ public class GPSRecordsFunction
                     continue;
                 if (!string.IsNullOrEmpty(nameFilter) && name != nameFilter)
                     continue;
-                if (!string.IsNullOrEmpty(categoryFilter) && category != categoryFilter)
+                if (categoryFilters.Length > 0 && !categoryFilters.Contains(category))
                     continue;
 
                 allRecords.Add(new

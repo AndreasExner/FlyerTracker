@@ -6,12 +6,27 @@
     const markerCountEl = document.getElementById('markerCount');
     const filterDogEl = document.getElementById('filterDog');
     const filterNameEl = document.getElementById('filterName');
-    const filterCategoryEl = document.getElementById('filterCategory');
+    const catBtnEl = document.getElementById('filterCategoryBtn');
+    const catDropdownEl = document.getElementById('filterCategoryDropdown');
+    const catWrapEl = document.getElementById('categoryMultiSelect');
     const legendEl = document.getElementById('legend');
     const toggleCirclesEl = document.getElementById('toggleCircles');
     const toggleRoutesEl = document.getElementById('toggleRoutes');
     const toastEl = document.getElementById('toast');
     let toastTimeout = null;
+
+    // ── Category multi-select helpers ────────────────────────────
+    function getSelectedCategories() {
+        return [...catDropdownEl.querySelectorAll('input:checked')].map(cb => cb.value);
+    }
+    function updateCatBtnText() {
+        const sel = getSelectedCategories();
+        if (sel.length === 0) catBtnEl.textContent = 'Alle Kategorien';
+        else if (sel.length === 1) catBtnEl.textContent = sel[0];
+        else catBtnEl.textContent = sel.length + ' Kategorien';
+    }
+    catBtnEl.addEventListener('click', e => { e.stopPropagation(); catDropdownEl.classList.toggle('hidden'); });
+    document.addEventListener('click', e => { if (!catWrapEl.contains(e.target)) catDropdownEl.classList.add('hidden'); });
 
     // ── Color palette for different dogs ─────────────────────────
     const COLORS = [
@@ -80,7 +95,7 @@
     let filterCategory = urlParams.get('category') || '';
     if (filterDog) filterDogEl.value = filterDog;
     if (filterName) filterNameEl.value = filterName;
-    if (filterCategory) filterCategoryEl.value = filterCategory;
+    // Category from URL will be applied after first data load
 
     // ── Init map ─────────────────────────────────────────────────
     const map = L.map('map').setView([51.1657, 10.4515], 6);
@@ -134,7 +149,7 @@
     function onFilterChange() {
         filterDog = filterDogEl.value;
         filterName = filterNameEl.value;
-        filterCategory = filterCategoryEl.value;
+        filterCategory = getSelectedCategories().join(',');
         // Reset color mapping for consistency
         Object.keys(dogColorMap).forEach(k => delete dogColorMap[k]);
         colorIdx = 0;
@@ -147,7 +162,7 @@
     }
     filterDogEl.addEventListener('change', onFilterChange);
     filterNameEl.addEventListener('change', onFilterChange);
-    filterCategoryEl.addEventListener('change', onFilterChange);
+    // Category multi-select: events attached in loadAndDisplay populate step
 
     // ── Toggle handlers ──────────────────────────────────────────
     toggleCirclesEl.addEventListener('change', () => {
@@ -211,14 +226,26 @@
 
             // Populate category filter dropdown (keep current selection)
             const currentCats = data.categories || [];
-            const currentCatVal = filterCategoryEl.value;
-            while (filterCategoryEl.options.length > 1) filterCategoryEl.remove(1);
+            const currentCatSel = getSelectedCategories();
+            catDropdownEl.innerHTML = '';
             currentCats.forEach(c => {
-                const opt = document.createElement('option');
-                opt.value = c; opt.textContent = c;
-                filterCategoryEl.appendChild(opt);
+                const label = document.createElement('label');
+                label.className = 'multi-select-item';
+                const cb = document.createElement('input');
+                cb.type = 'checkbox';
+                cb.value = c;
+                // On first load, pre-select from URL param
+                if (currentCatSel.length > 0) {
+                    if (currentCatSel.includes(c)) cb.checked = true;
+                } else if (filterCategory && filterCategory.split(',').includes(c)) {
+                    cb.checked = true;
+                }
+                cb.addEventListener('change', () => { updateCatBtnText(); onFilterChange(); });
+                label.appendChild(cb);
+                label.appendChild(document.createTextNode(' ' + c));
+                catDropdownEl.appendChild(label);
             });
-            filterCategoryEl.value = currentCatVal;
+            updateCatBtnText();
 
             if (records.length === 0) {
                 showToast('Keine GPS-Daten vorhanden', true);

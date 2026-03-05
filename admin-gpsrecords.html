@@ -26,9 +26,10 @@
                 <option value="">Alle Hunde</option>
             </select>
 
-            <select id="filterCategory" title="Filter nach Kategorie">
-                <option value="">Alle Kategorien</option>
-            </select>
+            <div class="multi-select" id="categoryMultiSelect">
+                <button class="multi-select-btn" type="button" id="filterCategoryBtn">Alle Kategorien</button>
+                <div class="multi-select-dropdown hidden" id="filterCategoryDropdown"></div>
+            </div>
 
             <select id="sortField" title="Sortierung">
                 <option value="time-desc" selected>Zeitpunkt ↓ (neueste)</option>
