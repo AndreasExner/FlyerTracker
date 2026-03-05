@@ -2,6 +2,11 @@
 (function () {
     'use strict';
 
+    const currentPath = location.pathname.split('/').pop() || 'index.html';
+    const urlParams = new URLSearchParams(location.search);
+    const paramName = urlParams.get('name') || '';
+    const paramDog = urlParams.get('lostDog') || '';
+
     // Build DOM
     const overlay = document.createElement('div');
     overlay.className = 'nav-overlay';
@@ -9,41 +14,52 @@
     const drawer = document.createElement('div');
     drawer.className = 'nav-drawer';
 
-    drawer.innerHTML = '<a class="active"><span class="nav-icon">📍</span> Standort erfassen</a>';
-
-    const links = [
-        { href: '#', icon: '📝', label: 'Meine Einträge', action: 'records' },
-        { href: '#', icon: '🗺️', label: 'Meine Karte', action: 'map' },
+    const pages = [
+        { href: 'index.html', icon: '📍', label: 'Standort erfassen' },
+        { href: 'my-records.html', icon: '📝', label: 'Meine Einträge', needsParams: true },
+        { href: 'my-map.html', icon: '🗺️', label: 'Meine Karte', needsParams: true },
     ];
 
-    links.forEach(p => {
+    pages.forEach(p => {
         const a = document.createElement('a');
-        a.href = p.href;
+        const isActive = currentPath === p.href;
+        if (isActive) a.classList.add('active');
+
         a.innerHTML = `<span class="nav-icon">${p.icon}</span> ${p.label}`;
-        a.addEventListener('click', e => {
-            e.preventDefault();
-            const userNameEl = document.getElementById('userName');
-            const lostDogEl = document.getElementById('lostDog');
-            if (!userNameEl.value || !lostDogEl.value) {
-                // Close drawer and show hint
-                toggle();
-                const toast = document.getElementById('toast');
-                if (toast) {
-                    toast.textContent = 'Bitte zuerst Name und Hund auswählen';
-                    toast.className = 'toast error';
-                    setTimeout(() => toast.className = 'toast hidden', 2500);
+
+        if (!isActive) {
+            a.href = '#';
+            a.addEventListener('click', e => {
+                e.preventDefault();
+                if (p.needsParams) {
+                    // Get name/dog from current page context
+                    let name = paramName;
+                    let dog = paramDog;
+                    // On index.html, read from dropdowns
+                    const nameEl = document.getElementById('userName');
+                    const dogEl = document.getElementById('lostDog');
+                    if (nameEl && nameEl.value) name = nameEl.value;
+                    if (dogEl && dogEl.value) dog = dogEl.value;
+
+                    if (!name || !dog) {
+                        toggle();
+                        const toast = document.getElementById('toast');
+                        if (toast) {
+                            toast.textContent = 'Bitte zuerst Name und Hund auswählen';
+                            toast.className = 'toast error';
+                            setTimeout(() => toast.className = 'toast hidden', 2500);
+                        }
+                        return;
+                    }
+                    const params = new URLSearchParams();
+                    params.set('name', name);
+                    params.set('lostDog', dog);
+                    location.href = p.href + '?' + params;
+                } else {
+                    location.href = p.href;
                 }
-                return;
-            }
-            const params = new URLSearchParams();
-            params.set('name', userNameEl.value);
-            params.set('lostDog', lostDogEl.value);
-            if (p.action === 'records') {
-                location.href = 'my-records.html?' + params;
-            } else if (p.action === 'map') {
-                location.href = 'my-map.html?' + params;
-            }
-        });
+            });
+        }
         drawer.appendChild(a);
     });
 
