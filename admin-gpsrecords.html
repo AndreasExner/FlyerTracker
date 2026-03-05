@@ -61,9 +61,6 @@
                         <th>Kategorie</th>
                         <th>Kommentar</th>
                         <th>Foto</th>
-                        <th>Breitengrad</th>
-                        <th>Längengrad</th>
-                        <th>Genauigkeit</th>
                     </tr>
                 </thead>
                 <tbody id="recordsBody"></tbody>
@@ -133,6 +130,15 @@
                     </label>
                     <label>Kommentar
                         <input type="text" id="editComment" placeholder="Kommentar (max. 40 Zeichen)" maxlength="40">
+                    </label>
+                    <label>Breitengrad
+                        <input type="text" id="editLatitude" readonly style="background:#f5f5f7;color:#6e6e73">
+                    </label>
+                    <label>Längengrad
+                        <input type="text" id="editLongitude" readonly style="background:#f5f5f7;color:#6e6e73">
+                    </label>
+                    <label>Genauigkeit
+                        <input type="text" id="editAccuracy" readonly style="background:#f5f5f7;color:#6e6e73">
                     </label>
                 </div>
                 <label class="edit-photo-delete" id="editPhotoRow">

@@ -297,46 +297,6 @@ html, body {
     transform: scale(1);
 }
 
-/* ── Mobile Card Layout for Tables ───────────────────────────── */
-@media (max-width: 768px) {
-    .data-table thead { display: none; }
-    .data-table tbody tr {
-        display: block;
-        background: #fff;
-        border: 1px solid #d2d2d7;
-        border-radius: 12px;
-        padding: 0.75rem 1rem;
-        margin-bottom: 0.75rem;
-        box-shadow: 0 1px 4px rgba(0,0,0,.06);
-    }
-    .data-table tbody tr:hover { background: #f9f9fb; }
-    .data-table td {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0.4rem 0;
-        border-bottom: 1px solid #f0f0f3;
-        white-space: normal;
-        word-break: break-word;
-    }
-    .data-table td:last-child { border-bottom: none; }
-    .data-table td::before {
-        content: attr(data-label);
-        font-weight: 600;
-        font-size: 0.8125rem;
-        color: #6e6e73;
-        flex-shrink: 0;
-        margin-right: 0.75rem;
-        min-width: 6rem;
-    }
-    /* Hide checkbox column on mobile cards — use swipe/long-press instead */
-    .data-table td[data-label=""] { display: none; }
-    .table-wrap {
-        border: none;
-        background: transparent;
-    }
-}
-
 /* Pagination */
 .pagination {
     display: flex;

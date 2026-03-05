@@ -40,7 +40,7 @@
 
     // ── Load records ─────────────────────────────────────────────
     async function loadRecords() {
-        bodyEl.innerHTML = '<tr><td colspan="10" style="color:#6e6e73;text-align:center;padding:2rem">Lädt…</td></tr>';
+        bodyEl.innerHTML = '<tr><td colspan="7" style="color:#6e6e73;text-align:center;padding:2rem">Lädt…</td></tr>';
         const ps = pageSizeEl.value;
         const dog = filterDogEl.value;
         const name = filterNameEl.value;
@@ -63,7 +63,7 @@
             renderPagination();
             updateDeleteButton();
         } catch {
-            bodyEl.innerHTML = '<tr><td colspan="10" style="color:#ff3b30;text-align:center;padding:2rem">Fehler beim Laden</td></tr>';
+            bodyEl.innerHTML = '<tr><td colspan="7" style="color:#ff3b30;text-align:center;padding:2rem">Fehler beim Laden</td></tr>';
         }
     }
 
@@ -111,26 +111,23 @@
         selectAllEl.checked = false;
 
         if (data.records.length === 0) {
-            bodyEl.innerHTML = '<tr><td colspan="10" style="color:#6e6e73;text-align:center;padding:2rem">Keine Einträge</td></tr>';
+            bodyEl.innerHTML = '<tr><td colspan="7" style="color:#6e6e73;text-align:center;padding:2rem">Keine Einträge</td></tr>';
             return;
         }
 
         data.records.forEach(r => {
             const tr = document.createElement('tr');
             const photoCell = r.photoUrl
-                ? `<td data-label="Foto"><img src="${esc(r.photoUrl)}" class="thumb" alt="Foto" onclick="document.getElementById('lightboxImg').src=this.src;document.getElementById('lightbox').classList.remove('hidden');"></td>`
-                : '<td data-label="Foto" class="no-photo">—</td>';
+                ? `<td><img src="${esc(r.photoUrl)}" class="thumb" alt="Foto" onclick="document.getElementById('lightboxImg').src=this.src;document.getElementById('lightbox').classList.remove('hidden');"></td>`
+                : '<td class="no-photo">—</td>';
             tr.innerHTML = `
-                <td data-label=""><input type="checkbox" class="row-cb" data-pk="${esc(r.partitionKey)}" data-rk="${esc(r.rowKey)}"></td>
-                <td data-label="Erfasser">${esc(r.name)}</td>
-                <td data-label="Suchhund">${esc(r.lostDog)}</td>
-                <td data-label="Zeitpunkt">${formatDate(r.recordedAt)}</td>
-                <td data-label="Kategorie">${esc(r.category || '')}</td>
-                <td data-label="Kommentar">${esc(r.comment || '')}</td>
-                ${photoCell}
-                <td data-label="Breitengrad">${r.latitude.toFixed(6)}</td>
-                <td data-label="Längengrad">${r.longitude.toFixed(6)}</td>
-                <td data-label="Genauigkeit">${r.accuracy.toFixed(1)} m</td>`;
+                <td><input type="checkbox" class="row-cb" data-pk="${esc(r.partitionKey)}" data-rk="${esc(r.rowKey)}"></td>
+                <td>${esc(r.name)}</td>
+                <td>${esc(r.lostDog)}</td>
+                <td>${formatDate(r.recordedAt)}</td>
+                <td>${esc(r.category || '')}</td>
+                <td>${esc(r.comment || '')}</td>
+                ${photoCell}`;
             bodyEl.appendChild(tr);
         });
     }
@@ -655,6 +652,9 @@
     const editSaveBtn = document.getElementById('editSaveBtn');
     const editCancelBtn = document.getElementById('editCancelBtn');
     const editModalTitle = document.getElementById('editModalTitle');
+    const editLatitudeEl = document.getElementById('editLatitude');
+    const editLongitudeEl = document.getElementById('editLongitude');
+    const editAccuracyEl = document.getElementById('editAccuracy');
 
     let editDropdownsLoaded = false;
 
@@ -692,6 +692,9 @@
         editCategoryEl.value = '';
         editCommentEl.value = '';
         editDeletePhotoEl.checked = false;
+        editLatitudeEl.value = '';
+        editLongitudeEl.value = '';
+        editAccuracyEl.value = '';
 
         // Check if any selected records have photos
         const selKeys = sel.map(s => s.partitionKey + '|' + s.rowKey);
@@ -699,6 +702,10 @@
         editPhotoRow.style.display = hasPhoto ? '' : 'none';
 
         if (sel.length === 1) {
+            // Show coordinates for single edit
+            editLatitudeEl.parentElement.style.display = '';
+            editLongitudeEl.parentElement.style.display = '';
+            editAccuracyEl.parentElement.style.display = '';
             // Pre-fill with current values for single record
             const rec = data.records.find(r => r.partitionKey === sel[0].partitionKey && r.rowKey === sel[0].rowKey);
             if (rec) {
@@ -706,10 +713,17 @@
                 editDogEl.value = rec.lostDog || '';
                 editCategoryEl.value = rec.category || '';
                 editCommentEl.value = rec.comment || '';
+                editLatitudeEl.value = rec.latitude.toFixed(6);
+                editLongitudeEl.value = rec.longitude.toFixed(6);
+                editAccuracyEl.value = rec.accuracy.toFixed(1) + ' m';
             }
             editModalTitle.textContent = 'Eintrag bearbeiten';
         } else {
             editModalTitle.textContent = `${sel.length} Einträge bearbeiten`;
+            // Hide coordinates for bulk edit
+            editLatitudeEl.parentElement.style.display = 'none';
+            editLongitudeEl.parentElement.style.display = 'none';
+            editAccuracyEl.parentElement.style.display = 'none';
         }
 
         editModal.classList.remove('hidden');
