@@ -390,6 +390,7 @@
     const editCoordsHint = document.getElementById('editCoordsHint');
     const editSaveBtn = document.getElementById('editSaveBtn');
     const editCancelBtn = document.getElementById('editCancelBtn');
+    const editDeleteBtn = document.getElementById('editDeleteBtn');
 
     let editingMarker = null;
     let editOriginalLatLng = null;
@@ -442,6 +443,40 @@
     }
 
     editCancelBtn.addEventListener('click', cancelEdit);
+
+    editDeleteBtn.addEventListener('click', async () => {
+        if (!editRecord) return;
+        if (!confirm('Diesen Eintrag wirklich l\u00f6schen?')) return;
+
+        editDeleteBtn.disabled = true;
+        editDeleteBtn.textContent = 'L\u00f6scht\u2026';
+
+        try {
+            const res = await fetch(`${API_BASE}/manage/gps-records/delete`, {
+                method: 'POST',
+                headers: FT_AUTH.adminHeaders({ 'Content-Type': 'application/json' }),
+                body: JSON.stringify({ keys: [{ partitionKey: editRecord.partitionKey, rowKey: editRecord.rowKey }] })
+            });
+            if (res.status === 401) { FT_AUTH.sessionExpired(); return; }
+            if (!res.ok) throw new Error();
+
+            showToast('Eintrag gel\u00f6scht');
+            cancelEdit();
+
+            clusterGroup.clearLayers();
+            circlesLayer.clearLayers();
+            routesLayer.clearLayers();
+            legendEl.innerHTML = '';
+            Object.keys(dogColorMap).forEach(k => delete dogColorMap[k]);
+            colorIdx = 0;
+            await loadAndDisplay();
+        } catch {
+            showToast('Fehler beim L\u00f6schen', true);
+        } finally {
+            editDeleteBtn.disabled = false;
+            editDeleteBtn.textContent = 'L\u00f6schen';
+        }
+    });
 
     editSaveBtn.addEventListener('click', async () => {
         if (!editingMarker || !editRecord) return;
