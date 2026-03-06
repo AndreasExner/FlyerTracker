@@ -7,6 +7,7 @@
     const filterInfoEl = document.getElementById('filterInfo');
     const legendEl = document.getElementById('legend');
     const toggleRoutesEl = document.getElementById('toggleRoutes');
+    const toggleLocationEl = document.getElementById('toggleLocation');
     const toastEl = document.getElementById('toast');
     let toastTimeout = null;
 
@@ -170,6 +171,8 @@
                 const categoryHtml = r.category ? `<br>🏷️ ${escHtml(r.category)}` : '';
                 const commentHtml = r.comment ? `<br>💬 ${escHtml(r.comment)}` : '';
 
+                const deleteBtnHtml = `<div style="margin-top:6px;"><button class="popup-delete-btn" data-pk="${escHtml(r.partitionKey)}" data-rk="${escHtml(r.rowKey)}">🗑️ Löschen</button></div>`;
+
                 marker.bindPopup(
                     `<strong>${escHtml(r.name)}</strong><br>` +
                     `🐕 ${escHtml(r.lostDog)}` +
@@ -177,7 +180,7 @@
                     `📍 ${r.latitude.toFixed(6)}, ${r.longitude.toFixed(6)}<br>` +
                     `🎯 ±${r.accuracy.toFixed(0)} m<br>` +
                     `🕐 ${formatDate(r.recordedAt)}` +
-                    photoHtml + navHtml,
+                    photoHtml + navHtml + deleteBtnHtml,
                     { maxWidth: 280 }
                 );
 
@@ -258,4 +261,101 @@
 
     // ── Start ────────────────────────────────────────────────────
     loadAndDisplay();
+
+    // ── Delete handler (event delegation on map popups) ──────────
+    document.addEventListener('click', async e => {
+        const btn = e.target.closest('.popup-delete-btn');
+        if (!btn) return;
+        const pk = btn.dataset.pk;
+        const rk = btn.dataset.rk;
+        if (!confirm('Diesen Eintrag wirklich löschen?')) return;
+        btn.disabled = true;
+        btn.textContent = '⏳…';
+        try {
+            const res = await fetch(`${API_BASE}/my-records/delete`, {
+                method: 'POST',
+                headers: FT_AUTH.publicHeaders({ 'Content-Type': 'application/json' }),
+                body: JSON.stringify({ keys: [{ partitionKey: pk, rowKey: rk }] })
+            });
+            if (!res.ok) throw new Error();
+            showToast('Eintrag gelöscht');
+            // Reload map data
+            clusterGroup.clearLayers();
+            routesLayer.clearLayers();
+            legendEl.innerHTML = '';
+            Object.keys(dogColorMap).forEach(k => delete dogColorMap[k]);
+            colorIdx = 0;
+            await loadAndDisplay();
+        } catch {
+            showToast('Fehler beim Löschen', true);
+            btn.disabled = false;
+            btn.textContent = '🗑️ Löschen';
+        }
+    });
+
+    // ── Live Location Tracking ───────────────────────────────────
+    let liveMarker = null;
+    let liveCircle = null;
+    let liveWatchId = null;
+
+    const liveIcon = L.divIcon({
+        className: '',
+        html: '<div class="live-location-dot"></div>',
+        iconSize: [18, 18],
+        iconAnchor: [9, 9]
+    });
+
+    function startTracking() {
+        if (!navigator.geolocation) {
+            showToast('Geolocation wird nicht unterstützt', true);
+            toggleLocationEl.checked = false;
+            return;
+        }
+        liveWatchId = navigator.geolocation.watchPosition(
+            pos => {
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                const acc = pos.coords.accuracy;
+
+                if (liveMarker) {
+                    liveMarker.setLatLng([lat, lng]);
+                    liveCircle.setLatLng([lat, lng]).setRadius(acc);
+                } else {
+                    liveMarker = L.marker([lat, lng], { icon: liveIcon, zIndexOffset: 1000 })
+                        .bindPopup('📍 Mein Standort')
+                        .addTo(map);
+                    liveCircle = L.circle([lat, lng], {
+                        radius: acc,
+                        className: 'live-accuracy-circle',
+                        interactive: false
+                    }).addTo(map);
+                    // Center map on first fix
+                    map.setView([lat, lng], Math.max(map.getZoom(), 15));
+                }
+            },
+            err => {
+                showToast('Standort nicht verfügbar', true);
+                toggleLocationEl.checked = false;
+                stopTracking();
+            },
+            { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
+        );
+    }
+
+    function stopTracking() {
+        if (liveWatchId !== null) {
+            navigator.geolocation.clearWatch(liveWatchId);
+            liveWatchId = null;
+        }
+        if (liveMarker) { map.removeLayer(liveMarker); liveMarker = null; }
+        if (liveCircle) { map.removeLayer(liveCircle); liveCircle = null; }
+    }
+
+    toggleLocationEl.addEventListener('change', () => {
+        if (toggleLocationEl.checked) {
+            startTracking();
+        } else {
+            stopTracking();
+        }
+    });
 })();

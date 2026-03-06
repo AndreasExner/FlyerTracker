@@ -1,5 +1,5 @@
 // ── FlyerTracker Service Worker ──────────────────────────────────
-const CACHE_NAME = 'flyertracker-v5';
+const CACHE_NAME = 'flyertracker-v6';
 
 const STATIC_ASSETS = [
     '/',

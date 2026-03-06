@@ -139,3 +139,39 @@
 }
 .edit-bar.hidden { display: none; }
 .edit-bar span { flex: 1; }
+
+/* ── Live location marker ────────────────────────────────────── */
+.live-location-dot {
+    width: 18px;
+    height: 18px;
+    background: #007aff;
+    border: 3px solid #fff;
+    border-radius: 50%;
+    box-shadow: 0 0 8px rgba(0,122,255,0.6);
+    animation: live-pulse 2s ease-in-out infinite;
+}
+@keyframes live-pulse {
+    0%, 100% { box-shadow: 0 0 8px rgba(0,122,255,0.6); }
+    50% { box-shadow: 0 0 20px rgba(0,122,255,0.9); }
+}
+.live-accuracy-circle {
+    stroke: #007aff;
+    stroke-width: 2;
+    fill: rgba(0,122,255,0.08);
+}
+
+/* ── Delete button in popup ──────────────────────────────────── */
+.popup-delete-btn {
+    display: inline-block;
+    margin-top: 6px;
+    padding: 3px 10px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #fff;
+    background: var(--danger, #ff3b30);
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+.popup-delete-btn:hover { opacity: 0.85; }
