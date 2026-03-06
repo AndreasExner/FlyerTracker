@@ -171,7 +171,7 @@
                 const categoryHtml = r.category ? `<br>🏷️ ${escHtml(r.category)}` : '';
                 const commentHtml = r.comment ? `<br>💬 ${escHtml(r.comment)}` : '';
 
-                const deleteBtnHtml = `<div style="margin-top:6px;"><button class="popup-delete-btn" data-pk="${escHtml(r.partitionKey)}" data-rk="${escHtml(r.rowKey)}">🗑️ Löschen</button></div>`;
+                const deleteBtnHtml = `<div style="margin-top:6px;"><button class="popup-delete-btn" data-pk="${escHtml(r.partitionKey)}" data-rk="${escHtml(r.rowKey)}">Löschen</button></div>`;
 
                 marker.bindPopup(
                     `<strong>${escHtml(r.name)}</strong><br>` +
