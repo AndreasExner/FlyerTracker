@@ -61,6 +61,12 @@
     });
     drawer.appendChild(logoutLink);
 
+    // Build version
+    const versionEl = document.createElement('div');
+    versionEl.style.cssText = 'padding:0.75rem 1rem;font-size:0.7rem;color:var(--text-muted);';
+    versionEl.textContent = '%%BUILD_VERSION%%';
+    drawer.appendChild(versionEl);
+
     // Hamburger button
     const btn = document.createElement('button');
     btn.className = 'hamburger-btn';
