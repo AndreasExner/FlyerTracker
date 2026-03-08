@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - dev
 
 jobs:
   build_and_deploy_job:
@@ -14,11 +15,19 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Inject production API key
-        env:
-          PROD_API_KEY: ${{ secrets.PROD_API_KEY }}
+      - name: Set environment
         run: |
-          ESCAPED_KEY=$(printf '%s\n' "$PROD_API_KEY" | sed 's/[&/\]/\\&/g')
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "SWA_TOKEN=${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}" >> $GITHUB_ENV
+            echo "DEPLOY_API_KEY=${{ secrets.PROD_API_KEY }}" >> $GITHUB_ENV
+          else
+            echo "SWA_TOKEN=${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_DEV }}" >> $GITHUB_ENV
+            echo "DEPLOY_API_KEY=${{ secrets.DEV_API_KEY }}" >> $GITHUB_ENV
+          fi
+
+      - name: Inject API key
+        run: |
+          ESCAPED_KEY=$(printf '%s\n' "$DEPLOY_API_KEY" | sed 's/[&/\]/\\&/g')
           sed -i "s/%%PROD_API_KEY%%/${ESCAPED_KEY}/g" js/app.js
           sed -i "s/%%PROD_API_KEY%%/${ESCAPED_KEY}/g" js/auth.js
 
@@ -33,7 +42,7 @@ jobs:
       - name: Deploy to SWA
         uses: Azure/static-web-apps-deploy@v1
         with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          azure_static_web_apps_api_token: ${{ env.SWA_TOKEN }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
           app_location: "/"
