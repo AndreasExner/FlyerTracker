@@ -15,9 +15,12 @@ jobs:
           fetch-depth: 0
 
       - name: Inject production API key
+        env:
+          PROD_API_KEY: ${{ secrets.PROD_API_KEY }}
         run: |
-          sed -i "s/%%PROD_API_KEY%%/${{ secrets.PROD_API_KEY }}/g" js/app.js
-          sed -i "s/%%PROD_API_KEY%%/${{ secrets.PROD_API_KEY }}/g" js/auth.js
+          ESCAPED_KEY=$(printf '%s\n' "$PROD_API_KEY" | sed 's/[&/\]/\\&/g')
+          sed -i "s/%%PROD_API_KEY%%/${ESCAPED_KEY}/g" js/app.js
+          sed -i "s/%%PROD_API_KEY%%/${ESCAPED_KEY}/g" js/auth.js
 
       - name: Inject build version
         run: |
