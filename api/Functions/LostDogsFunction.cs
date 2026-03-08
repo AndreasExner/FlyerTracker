@@ -76,22 +76,20 @@ public class LostDogsFunction
             var tableClient = _tableService.GetTableClient("LostDogs");
             await tableClient.CreateIfNotExistsAsync();
 
-            var items = new List<object>();
+            var items = new List<(string partitionKey, string rowKey, string location)>();
             await foreach (var entity in tableClient.QueryAsync<TableEntity>())
             {
-                items.Add(new
-                {
-                    partitionKey = entity.PartitionKey,
-                    rowKey = entity.RowKey,
-                    location = entity.GetString("Location") ?? entity.RowKey
-                });
+                items.Add((
+                    entity.PartitionKey,
+                    entity.RowKey,
+                    entity.GetString("Location") ?? entity.RowKey
+                ));
             }
 
             var comparer = StringComparer.Create(new System.Globalization.CultureInfo("de-DE"), false);
-            items.Sort((a, b) => comparer.Compare(
-                ((dynamic)a).location, ((dynamic)b).location));
+            items.Sort((a, b) => comparer.Compare(a.location, b.location));
 
-            return new OkObjectResult(items);
+            return new OkObjectResult(items.Select(i => new { i.partitionKey, i.rowKey, i.location }));
         }
         catch (Exception ex)
         {

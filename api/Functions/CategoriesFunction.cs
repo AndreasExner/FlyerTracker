@@ -42,17 +42,17 @@ public class CategoriesFunction
             var tableClient = _tableService.GetTableClient("Categories");
             await tableClient.CreateIfNotExistsAsync();
 
-            var categories = new List<object>();
+            var categories = new List<(string name, string svgSymbol)>();
             await foreach (var entity in tableClient.QueryAsync<TableEntity>())
             {
                 var name = entity.GetString("Name") ?? entity.RowKey;
                 if (!string.IsNullOrWhiteSpace(name))
-                    categories.Add(new { name, svgSymbol = entity.GetString("SvgSymbol") ?? "" });
+                    categories.Add((name, entity.GetString("SvgSymbol") ?? ""));
             }
 
             var comparer = StringComparer.Create(new System.Globalization.CultureInfo("de-DE"), false);
-            categories.Sort((a, b) => comparer.Compare(((dynamic)a).name, ((dynamic)b).name));
-            return new OkObjectResult(categories);
+            categories.Sort((a, b) => comparer.Compare(a.name, b.name));
+            return new OkObjectResult(categories.Select(c => new { c.name, c.svgSymbol }));
         }
         catch (Exception ex)
         {
@@ -79,23 +79,21 @@ public class CategoriesFunction
             var tableClient = _tableService.GetTableClient("Categories");
             await tableClient.CreateIfNotExistsAsync();
 
-            var items = new List<object>();
+            var items = new List<(string partitionKey, string rowKey, string name, string svgSymbol)>();
             await foreach (var entity in tableClient.QueryAsync<TableEntity>())
             {
-                items.Add(new
-                {
-                    partitionKey = entity.PartitionKey,
-                    rowKey = entity.RowKey,
-                    name = entity.GetString("Name") ?? entity.RowKey,
-                    svgSymbol = entity.GetString("SvgSymbol") ?? ""
-                });
+                items.Add((
+                    entity.PartitionKey,
+                    entity.RowKey,
+                    entity.GetString("Name") ?? entity.RowKey,
+                    entity.GetString("SvgSymbol") ?? ""
+                ));
             }
 
             var comparer = StringComparer.Create(new System.Globalization.CultureInfo("de-DE"), false);
-            items.Sort((a, b) => comparer.Compare(
-                ((dynamic)a).name, ((dynamic)b).name));
+            items.Sort((a, b) => comparer.Compare(a.name, b.name));
 
-            return new OkObjectResult(items);
+            return new OkObjectResult(items.Select(i => new { i.partitionKey, i.rowKey, i.name, i.svgSymbol }));
         }
         catch (Exception ex)
         {

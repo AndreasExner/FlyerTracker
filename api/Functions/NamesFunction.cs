@@ -76,22 +76,20 @@ public class NamesFunction
             var tableClient = _tableService.GetTableClient("Names");
             await tableClient.CreateIfNotExistsAsync();
 
-            var items = new List<object>();
+            var items = new List<(string partitionKey, string rowKey, string name)>();
             await foreach (var entity in tableClient.QueryAsync<TableEntity>())
             {
-                items.Add(new
-                {
-                    partitionKey = entity.PartitionKey,
-                    rowKey = entity.RowKey,
-                    name = entity.GetString("Name") ?? entity.RowKey
-                });
+                items.Add((
+                    entity.PartitionKey,
+                    entity.RowKey,
+                    entity.GetString("Name") ?? entity.RowKey
+                ));
             }
 
             var comparer = StringComparer.Create(new System.Globalization.CultureInfo("de-DE"), false);
-            items.Sort((a, b) => comparer.Compare(
-                ((dynamic)a).name, ((dynamic)b).name));
+            items.Sort((a, b) => comparer.Compare(a.name, b.name));
 
-            return new OkObjectResult(items);
+            return new OkObjectResult(items.Select(i => new { i.partitionKey, i.rowKey, i.name }));
         }
         catch (Exception ex)
         {

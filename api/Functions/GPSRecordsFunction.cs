@@ -59,6 +59,9 @@ public class GPSRecordsFunction
             int page = int.TryParse(pageStr, out var p) ? Math.Max(1, p) : 1;
 
             var allRecords = new List<object>();
+            var allLostDogs = new HashSet<string>();
+            var allNames = new HashSet<string>();
+            var allCategories = new HashSet<string>();
             await foreach (var entity in tableClient.QueryAsync<TableEntity>())
             {
                 var lostDog = entity.GetString("LostDog") ?? "";
@@ -70,6 +73,10 @@ public class GPSRecordsFunction
                     continue;
                 if (categoryFilters.Length > 0 && !categoryFilters.Contains(category))
                     continue;
+
+                if (!string.IsNullOrEmpty(lostDog)) allLostDogs.Add(lostDog);
+                if (!string.IsNullOrEmpty(name)) allNames.Add(name);
+                if (!string.IsNullOrEmpty(category)) allCategories.Add(category);
 
                 allRecords.Add(new
                 {
@@ -89,26 +96,10 @@ public class GPSRecordsFunction
 
             int totalCount = allRecords.Count;
 
-            // Get unique lost dogs for filter dropdown
-            var lostDogs = allRecords.Select(r => ((dynamic)r).lostDog as string)
-                .Where(d => !string.IsNullOrEmpty(d))
-                .Distinct()
-                .OrderBy(d => d, StringComparer.Create(new System.Globalization.CultureInfo("de-DE"), false))
-                .ToList();
-
-            // Get unique names for filter dropdown
-            var names = allRecords.Select(r => ((dynamic)r).name as string)
-                .Where(n => !string.IsNullOrEmpty(n))
-                .Distinct()
-                .OrderBy(n => n, StringComparer.Create(new System.Globalization.CultureInfo("de-DE"), false))
-                .ToList();
-
-            // Get unique categories for filter dropdown
-            var categories = allRecords.Select(r => ((dynamic)r).category as string)
-                .Where(c => !string.IsNullOrEmpty(c))
-                .Distinct()
-                .OrderBy(c => c, StringComparer.Create(new System.Globalization.CultureInfo("de-DE"), false))
-                .ToList();
+            var deComparer = StringComparer.Create(new System.Globalization.CultureInfo("de-DE"), false);
+            var lostDogs = allLostDogs.OrderBy(d => d, deComparer).ToList();
+            var names = allNames.OrderBy(n => n, deComparer).ToList();
+            var categories = allCategories.OrderBy(c => c, deComparer).ToList();
 
             // Paginate
             IEnumerable<object> pagedRecords;
