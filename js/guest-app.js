@@ -39,7 +39,7 @@
     async function init() {
         const valid = await resolveDogByKey();
         if (!valid) {
-            setInvalidState();
+            if (!guestKey) setInvalidState('Kein Key in der URL');
             return;
         }
 
@@ -59,7 +59,7 @@
         removePhotoBtnEl.addEventListener('click', removePhoto);
     }
 
-    function setInvalidState() {
+    function setInvalidState(detail) {
         dogNameEl.textContent = 'Unbekannter Hund';
         dogNameEl.style.borderColor = '#ff3b30';
         dogNameEl.style.color = '#ff3b30';
@@ -68,21 +68,32 @@
         categoryEl.disabled = true;
         commentEl.disabled = true;
         photoBtnEl.disabled = true;
+        if (detail) showToast(detail, true);
     }
 
     // ── Resolve dog name via key ─────────────────────────────────
     async function resolveDogByKey() {
         if (!guestKey) return false;
         try {
-            const res = await fetch(`${API_BASE}/lost-dogs/by-key/${encodeURIComponent(guestKey)}`, {
+            const url = `${API_BASE}/lost-dogs/by-key/${encodeURIComponent(guestKey)}`;
+            const res = await fetch(url, {
                 headers: { 'X-API-Key': API_KEY }
             });
-            if (!res.ok) return false;
+            if (!res.ok) {
+                let detail = `API ${res.status}`;
+                try { const body = await res.json(); detail += ': ' + (body.error || JSON.stringify(body)); } catch {}
+                console.error('resolveDogByKey failed:', detail, 'URL:', url);
+                setInvalidState(detail);
+                return false;
+            }
             const data = await res.json();
             resolvedDogName = data.location;
             dogNameEl.textContent = resolvedDogName;
             return true;
-        } catch {
+        } catch (err) {
+            console.error('resolveDogByKey exception:', err);
+            setInvalidState('Netzwerkfehler: ' + err.message);
+            return false;
             return false;
         }
     }

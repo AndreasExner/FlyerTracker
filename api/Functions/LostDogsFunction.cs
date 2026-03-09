@@ -85,11 +85,14 @@ public class LostDogsFunction
             var tableClient = _tableService.GetTableClient("LostDogs");
             await tableClient.CreateIfNotExistsAsync();
 
-            var filter = $"Suffix eq '{key.Replace("'", "''")}'";
-            await foreach (var entity in tableClient.QueryAsync<TableEntity>(filter))
+            await foreach (var entity in tableClient.QueryAsync<TableEntity>())
             {
-                var location = entity.GetString("Location") ?? entity.RowKey;
-                return new OkObjectResult(new { location });
+                var suffix = entity.GetString("Suffix") ?? "";
+                if (string.Equals(suffix, key, StringComparison.Ordinal))
+                {
+                    var location = entity.GetString("Location") ?? entity.RowKey;
+                    return new OkObjectResult(new { location });
+                }
             }
 
             return new NotFoundObjectResult(new { error = "Hund nicht gefunden" });
