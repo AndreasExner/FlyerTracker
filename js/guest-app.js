@@ -20,6 +20,8 @@
     const photoPreviewEl = document.getElementById('photoPreview');
     const previewImgEl = document.getElementById('previewImg');
     const removePhotoBtnEl = document.getElementById('removePhotoBtn');
+    const editBtnEl = document.getElementById('editBtn');
+    const mapBtnEl = document.getElementById('mapBtn');
 
     let toastTimeout = null;
     let selectedPhotoBlob = null;
@@ -57,6 +59,9 @@
         photoBtnEl.addEventListener('click', () => photoInputEl.click());
         photoInputEl.addEventListener('change', onPhotoSelected);
         removePhotoBtnEl.addEventListener('click', removePhoto);
+
+        editBtnEl.addEventListener('click', onEditRecords);
+        mapBtnEl.addEventListener('click', onShowMap);
     }
 
     function setInvalidState(detail) {
@@ -68,6 +73,8 @@
         categoryEl.disabled = true;
         commentEl.disabled = true;
         photoBtnEl.disabled = true;
+        if (editBtnEl) editBtnEl.disabled = true;
+        if (mapBtnEl) mapBtnEl.disabled = true;
         if (detail) showToast(detail, true);
     }
 
@@ -93,7 +100,6 @@
         } catch (err) {
             console.error('resolveDogByKey exception:', err);
             setInvalidState('Netzwerkfehler: ' + err.message);
-            return false;
             return false;
         }
     }
@@ -180,6 +186,23 @@
 
     function updateButtonState() {
         saveBtnEl.disabled = !(resolvedDogName && categoryEl.value);
+        const hasDog = !!resolvedDogName;
+        if (editBtnEl) editBtnEl.disabled = !hasDog;
+        if (mapBtnEl) mapBtnEl.disabled = !hasDog;
+    }
+
+    function onEditRecords() {
+        const params = new URLSearchParams();
+        params.set('name', 'HALTER*IN');
+        params.set('lostDog', resolvedDogName);
+        window.location.href = 'my-records.html?' + params;
+    }
+
+    function onShowMap() {
+        const params = new URLSearchParams();
+        params.set('name', 'HALTER*IN');
+        params.set('lostDog', resolvedDogName);
+        window.location.href = 'my-map.html?' + params;
     }
 
     // ── Save GPS location ────────────────────────────────────────
@@ -192,7 +215,7 @@
         try {
             const position = await getCurrentPosition();
             const entry = {
-                name: 'Halter',
+                name: 'HALTER*IN',
                 lostDog: resolvedDogName,
                 category: categoryEl.value,
                 comment: commentEl.value.trim(),
