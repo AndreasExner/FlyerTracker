@@ -57,7 +57,7 @@ public class LostDogsFunction
             var comparer = StringComparer.Create(new System.Globalization.CultureInfo("de-DE"), false);
             items.Sort((a, b) => comparer.Compare(a.display, b.display));
 
-            return new OkObjectResult(items.Select(i => i.display));
+            return new OkObjectResult(items.Select(i => i.location));
         }
         catch (Exception ex)
         {

@@ -4,6 +4,7 @@ const CACHE_NAME = 'lostdogtracer-v1';
 const STATIC_ASSETS = [
     '/',
     '/index.html',
+    '/my-home.html',
     '/css/shared.css',
     '/css/style.css',
     '/css/admin.css',
@@ -58,7 +59,7 @@ self.addEventListener('fetch', event => {
         }).catch(() => {
             // Offline fallback for navigation requests
             if (event.request.mode === 'navigate') {
-                return caches.match('/index.html');
+                return caches.match('/my-home.html');
             }
         })
     );
