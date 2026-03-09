@@ -85,7 +85,8 @@ public class LostDogsFunction
             var tableClient = _tableService.GetTableClient("LostDogs");
             await tableClient.CreateIfNotExistsAsync();
 
-            await foreach (var entity in tableClient.QueryAsync<TableEntity>(e => e.GetString("Suffix") == key))
+            var filter = $"Suffix eq '{key.Replace("'", "''")}'";
+            await foreach (var entity in tableClient.QueryAsync<TableEntity>(filter))
             {
                 var location = entity.GetString("Location") ?? entity.RowKey;
                 return new OkObjectResult(new { location });
