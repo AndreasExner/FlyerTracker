@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text.Json;
 using Azure.Data.Tables;
 using LostDogTracer.Api.Security;
@@ -120,7 +121,6 @@ public class LostDogsFunction
 
             var body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body);
             var location = body.GetProperty("location").GetString();
-            var suffix = body.TryGetProperty("suffix", out var sfx) ? sfx.GetString() ?? "" : "";
 
             if (string.IsNullOrWhiteSpace(location))
                 return new BadRequestObjectResult(new { error = "Name darf nicht leer sein" });
@@ -128,32 +128,22 @@ public class LostDogsFunction
             var tableClient = _tableService.GetTableClient("LostDogs");
             await tableClient.CreateIfNotExistsAsync();
 
-            // RowKey = Location + Suffix for uniqueness
             var trimmedLocation = location.Trim();
-            var trimmedSuffix = suffix.Trim();
-            var rowKey = string.IsNullOrEmpty(trimmedSuffix)
-                ? trimmedLocation
-                : $"{trimmedLocation}_{trimmedSuffix}";
 
-            // Check for duplicate
-            try
-            {
-                var existing = await tableClient.GetEntityIfExistsAsync<TableEntity>("locations", rowKey);
-                if (existing.HasValue)
-                    return new ConflictObjectResult(new { error = "Ein Hund mit diesem Namen und Suffix existiert bereits" });
-            }
-            catch { /* entity does not exist \u2013 good */ }
+            // Generate cryptographically random 6-char alphanumeric suffix
+            var suffix = GenerateRandomSuffix(6);
+            var rowKey = $"{trimmedLocation}_{suffix}";
 
             var entity = new TableEntity("locations", rowKey)
             {
                 { "Location", trimmedLocation },
-                { "Suffix", trimmedSuffix }
+                { "Suffix", suffix }
             };
 
             await tableClient.AddEntityAsync(entity);
-            _logger.LogInformation("Lost dog created: {Location} ({Suffix})", trimmedLocation, trimmedSuffix);
+            _logger.LogInformation("Lost dog created: {Location} ({Suffix})", trimmedLocation, suffix);
 
-            return new CreatedResult("", new { partitionKey = "locations", rowKey, location = trimmedLocation, suffix = trimmedSuffix });
+            return new CreatedResult("", new { partitionKey = "locations", rowKey, location = trimmedLocation, suffix });
         }
         catch (Exception ex)
         {
@@ -186,5 +176,11 @@ public class LostDogsFunction
             _logger.LogError(ex, "Error deleting lost dog");
             return new StatusCodeResult(500);
         }
+    }
+
+    private static string GenerateRandomSuffix(int length)
+    {
+        const string chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+        return RandomNumberGenerator.GetString(chars, length);
     }
 }

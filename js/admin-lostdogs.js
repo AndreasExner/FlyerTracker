@@ -5,7 +5,6 @@
 
     const listEl = document.getElementById('dogList');
     const inputEl = document.getElementById('newDog');
-    const suffixEl = document.getElementById('newSuffix');
     const addBtn = document.getElementById('addBtn');
     const toastEl = document.getElementById('toast');
     let toastTimeout = null;
@@ -46,7 +45,6 @@
 
     async function addDog() {
         const location = inputEl.value.trim();
-        const suffix = suffixEl.value.trim();
         if (!location) {
             inputEl.style.borderColor = '#ff3b30';
             inputEl.style.boxShadow = '0 0 0 3px rgba(255,59,48,.12)';
@@ -59,15 +57,12 @@
             const res = await fetch(`${API_BASE}/manage/lost-dogs`, {
                 method: 'POST',
                 headers: FT_AUTH.adminHeaders({ 'Content-Type': 'application/json' }),
-                body: JSON.stringify({ location, suffix })
+                body: JSON.stringify({ location })
             });
             if (res.status === 401) { FT_AUTH.sessionExpired(); return; }
-            if (res.status === 409) { showToast('Hund mit diesem Namen und Suffix existiert bereits', true); return; }
             if (!res.ok) throw new Error();
             inputEl.value = '';
-            suffixEl.value = '';
-            const display = suffix ? `${location} (${suffix})` : location;
-            showToast(`\u201E${display}\u201C hinzugefügt`);
+            showToast(`\u201E${location}\u201C hinzugefügt`);
             await loadDogs();
         } catch {
             showToast('Fehler beim Hinzufügen', true);
