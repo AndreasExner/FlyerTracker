@@ -195,14 +195,16 @@
         const params = new URLSearchParams();
         params.set('name', 'HALTER*IN');
         params.set('lostDog', resolvedDogName);
-        window.location.href = 'my-records.html?' + params;
+        if (guestKey) params.set('key', guestKey);
+        window.location.href = 'guest-records.html?' + params;
     }
 
     function onShowMap() {
         const params = new URLSearchParams();
         params.set('name', 'HALTER*IN');
         params.set('lostDog', resolvedDogName);
-        window.location.href = 'my-map.html?' + params;
+        if (guestKey) params.set('key', guestKey);
+        window.location.href = 'guest-map.html?' + params;
     }
 
     // ── Save GPS location ────────────────────────────────────────

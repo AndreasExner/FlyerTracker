@@ -6,6 +6,8 @@ const STATIC_ASSETS = [
     '/index.html',
     '/my-home.html',
     '/guest-home.html',
+    '/guest-records.html',
+    '/guest-map.html',
     '/css/shared.css',
     '/css/style.css',
     '/css/admin.css',

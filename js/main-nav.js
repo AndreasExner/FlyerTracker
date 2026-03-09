@@ -3,7 +3,6 @@
     'use strict';
 
     const currentPath = location.pathname.split('/').pop() || 'my-home.html';
-    const isGuestPage = currentPath === 'guest-home.html';
     const urlParams = new URLSearchParams(location.search);
     const paramName = urlParams.get('name') || '';
     const paramDog = urlParams.get('lostDog') || '';
@@ -36,20 +35,11 @@
                     // Get name/dog from current page context
                     let name = paramName;
                     let dog = paramDog;
-                    if (isGuestPage) {
-                        // On guest-home.html, use fixed name and resolved dog
-                        name = 'HALTER*IN';
-                        const dogNameEl = document.getElementById('dogName');
-                        if (dogNameEl && dogNameEl.textContent !== '—' && dogNameEl.textContent !== 'Unbekannter Hund') {
-                            dog = dogNameEl.textContent;
-                        }
-                    } else {
-                        // On my-home.html, read from dropdowns
-                        const nameEl = document.getElementById('userName');
-                        const dogEl = document.getElementById('lostDog');
-                        if (nameEl && nameEl.value) name = nameEl.value;
-                        if (dogEl && dogEl.value) dog = dogEl.value;
-                    }
+                    // On my-home.html, read from dropdowns
+                    const nameEl = document.getElementById('userName');
+                    const dogEl = document.getElementById('lostDog');
+                    if (nameEl && nameEl.value) name = nameEl.value;
+                    if (dogEl && dogEl.value) dog = dogEl.value;
 
                     if (!name || !dog) {
                         toggle();
