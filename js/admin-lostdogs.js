@@ -38,6 +38,7 @@
             if (item.suffix) {
                 const linkBtn = document.createElement('button');
                 linkBtn.className = 'btn btn-secondary btn-sm';
+                linkBtn.style.marginRight = '0.5rem';
                 linkBtn.textContent = '🔗 Link';
                 linkBtn.addEventListener('click', () => copyGuestLink(item.suffix, item.location));
                 li.appendChild(linkBtn);
