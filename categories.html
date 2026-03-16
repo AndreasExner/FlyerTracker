@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#ffffff">
+    <title>LostDogTracer – Kategorien verwalten</title>
+    <link rel="stylesheet" href="css/shared.css">
+    <link rel="stylesheet" href="css/admin.css">
+    <style>
+        .svg-preview { width:36px; height:48px; flex-shrink:0; }
+        .svg-preview svg { display:block; }
+        .category-item { display:flex; align-items:center; gap:0.75rem; padding:0.5rem 0; }
+        .category-item .item-name { font-weight:600; }
+        .category-actions { display:flex; gap:0.4rem; flex-shrink:0; }
+        .icon-picker { display:flex; flex-wrap:wrap; gap:0.4rem; margin-top:0.35rem; }
+        .icon-picker-btn {
+            width:40px; height:40px; border:2px solid #d2d2d7; border-radius:8px;
+            background:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center;
+            padding:2px; transition: border-color 0.15s;
+        }
+        .icon-picker-btn:hover { border-color:#0071e3; }
+        .icon-picker-btn.selected { border-color:#0071e3; background:#e8f2ff; }
+        .icon-picker-btn svg { display:block; }
+    </style>
+</head>
+<body>
+    <div class="site-banner">Hundesuchhilfe-Ostfriesland e.V.</div>
+    <div class="admin-container">
+        <div class="admin-header">
+            <h1>Kategorien verwalten</h1>
+            <a href="index.html" class="btn-back">Zurück</a>
+        </div>
+
+        <div class="add-row" style="flex-wrap:wrap;gap:0.5rem;">
+            <input type="text" id="newCategory" placeholder="Neue Kategorie…" maxlength="100"
+                   autocomplete="off" style="flex:1;min-width:150px;">
+            <div id="newIconPicker" class="icon-picker"></div>
+            <input type="hidden" id="newIconKey" value="default">
+            <div id="newPreview" class="svg-preview"></div>
+            <button class="btn btn-primary" id="addBtn">Hinzufügen</button>
+        </div>
+
+        <ul class="item-list" id="categoryList"></ul>
+
+        <div id="toast" class="toast hidden"></div>
+    </div>
+    <script src="js/auth.js"></script>
+    <script>
+        FT_AUTH.isLoggedIn().then(ok => { if (!ok) location.href = 'index.html'; });
+    </script>
+    <script src="js/svg-icons.js"></script>
+    <script src="js/categories.js"></script>
+    <script src="js/theme.js"></script>
+    <script src="js/nav.js"></script>
+</body>
+</html>
