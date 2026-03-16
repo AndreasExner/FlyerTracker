@@ -123,4 +123,46 @@ public class AuthFunction
         public string? OldPassword { get; init; }
         public string? NewPassword { get; init; }
     }
+
+    private record UpdateProfileRequest
+    {
+        public string? DisplayName { get; init; }
+    }
+
+    [Function("UpdateProfile")]
+    public async Task<IActionResult> UpdateProfile(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "auth/update-profile")] HttpRequest req)
+    {
+        try
+        {
+            if (!_apiKey.IsValid(req))
+                return new ObjectResult(new { error = "Ungültiger API-Key" }) { StatusCode = 403 };
+            var ip = req.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            if (!_rateLimit.Write.IsAllowed(ip))
+                return new ObjectResult(new { error = "Zu viele Anfragen. Bitte warten." }) { StatusCode = 429 };
+            if (!_auth.ValidateToken(req))
+                return AdminAuth.Unauthorized();
+
+            var username = _auth.GetUsernameFromToken(req);
+            if (username is null) return AdminAuth.Unauthorized();
+
+            var body = await JsonSerializer.DeserializeAsync<UpdateProfileRequest>(req.Body,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+            if (body is null || string.IsNullOrWhiteSpace(body.DisplayName))
+                return new BadRequestObjectResult(new { error = "Anzeigename erforderlich" });
+
+            var ok = await _auth.UpdateDisplayNameAsync(username, body.DisplayName);
+            if (!ok)
+                return new NotFoundObjectResult(new { error = "Benutzer nicht gefunden" });
+
+            _logger.LogInformation("Profile updated for: {User}", username);
+            return new OkObjectResult(new { message = "Profil aktualisiert", displayName = body.DisplayName.Trim() });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating profile");
+            return new StatusCodeResult(500);
+        }
+    }
 }

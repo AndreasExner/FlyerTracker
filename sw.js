@@ -5,6 +5,7 @@ const STATIC_ASSETS = [
     '/',
     '/index.html',
     '/my-home.html',
+    '/field-home.html',
     '/guest-home.html',
     '/guest-records.html',
     '/guest-map.html',
@@ -14,8 +15,10 @@ const STATIC_ASSETS = [
     '/css/map.css',
     '/js/theme.js',
     '/js/app.js',
+    '/js/field-app.js',
     '/js/auth.js',
     '/js/main-nav.js',
+    '/js/field-nav.js',
     '/js/offline-store.js',
     '/manifest.json'
 ];
@@ -62,7 +65,7 @@ self.addEventListener('fetch', event => {
         }).catch(() => {
             // Offline fallback for navigation requests
             if (event.request.mode === 'navigate') {
-                return caches.match('/my-home.html');
+                return caches.match('/field-home.html') || caches.match('/my-home.html');
             }
         })
     );

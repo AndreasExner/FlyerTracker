@@ -124,7 +124,7 @@
     async function loadNames() {
         try {
             userNameEl.classList.add('loading');
-            const res = await fetch(`${API_BASE}/names`, { headers: { 'X-API-Key': API_KEY } });
+            const res = await fetch(`${API_BASE}/user-names`, { headers: { 'X-API-Key': API_KEY } });
             if (!res.ok) throw new Error('Fehler beim Laden der Namen');
             const names = await res.json();
             if (typeof FT_OFFLINE !== 'undefined') FT_OFFLINE.saveDropdownData('names', names);

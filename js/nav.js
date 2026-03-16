@@ -2,7 +2,7 @@
 (function () {
     // Inject on sub-pages and index.html menu page
     const path = location.pathname;
-    const isSubPage = /(?:gpsrecords|map|names|lostdogs|categories|users|backup)\.html$/i.test(path);
+    const isSubPage = /(?:gpsrecords|map|names|lostdogs|categories|users|backup|profile)\.html$/i.test(path);
     const isHome = /index\.html$/i.test(path) || path === '/' || path.endsWith('/');
     if (!isSubPage && !isHome) return;
 
@@ -13,6 +13,8 @@
         { href: 'categories.html', icon: '🏷️', label: 'Kategorien' },
         { href: 'users.html',      icon: '🔑', label: 'Benutzer' },
         { href: 'backup.html',     icon: '🔧', label: 'Wartung' },
+        { href: 'field-home.html', icon: '📡', label: 'Feldarbeit' },
+        { href: 'profile.html',    icon: '👤', label: 'Mein Profil' },
     ];
 
     // Build DOM

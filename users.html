@@ -120,6 +120,25 @@
         </div>
     </div>
 
+    <!-- Modal: Edit user (role + displayName) -->
+    <div class="modal-overlay" id="editUserModal">
+        <div class="modal">
+            <h3>Benutzer bearbeiten: <span id="editUserName"></span></h3>
+            <input type="text" id="editDisplayName" placeholder="Anzeigename" autocomplete="off">
+            <select id="editUserRole" style="width:100%;padding:0.75rem 1rem;font-size:1rem;border:1px solid #d2d2d7;border-radius:10px;outline:none;margin-bottom:0.75rem;">
+                <option value="Guest">Guest</option>
+                <option value="User">User</option>
+                <option value="Manager">Manager</option>
+                <option value="Administrator">Administrator</option>
+            </select>
+            <p class="modal-error" id="editUserError"></p>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary btn-sm" id="editUserCancel">Abbrechen</button>
+                <button class="btn btn-primary btn-sm" id="editUserSave">Speichern</button>
+            </div>
+        </div>
+    </div>
+
     <script src="js/auth.js"></script>
     <script>
         FT_AUTH.isLoggedIn().then(ok => { if (!ok) location.href = 'index.html'; });

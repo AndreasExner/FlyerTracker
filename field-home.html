@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="theme-color" content="#ffffff">
-    <title>LostDogTracer</title>
+    <title>LostDogTracer – Feldarbeit</title>
     <link rel="stylesheet" href="css/shared.css">
     <link rel="stylesheet" href="css/style.css">
     <link rel="manifest" href="manifest.json">
@@ -67,14 +67,14 @@
 
         <img src="gfx/lostdogtracer-logo-100w.png" alt="LostDogTracer Logo" style="display:block;margin-top:1.5rem;height:auto;width:100px;">
     </div>
-    <script src="js/theme.js"></script>
     <script src="js/auth.js"></script>
     <script>
         FT_AUTH.isLoggedIn().then(ok => { if (!ok) location.href = 'index.html'; });
     </script>
+    <script src="js/theme.js"></script>
     <script src="js/offline-store.js"></script>
-    <script src="js/app.js"></script>
-    <script src="js/main-nav.js"></script>
+    <script src="js/field-app.js"></script>
+    <script src="js/field-nav.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/sw.js').catch(err => console.warn('SW registration failed:', err));

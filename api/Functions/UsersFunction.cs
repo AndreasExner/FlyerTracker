@@ -169,4 +169,67 @@ public class UsersFunction
     {
         public string? NewPassword { get; init; }
     }
+
+    private record UpdateUserRequest
+    {
+        public string? DisplayName { get; init; }
+        public string? Role { get; init; }
+    }
+
+    [Function("UpdateUser")]
+    public async Task<IActionResult> UpdateUser(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "manage/users/{username}")] HttpRequest req,
+        string username)
+    {
+        try
+        {
+            if (!_apiKey.IsValid(req))
+                return new ObjectResult(new { error = "Ungültiger API-Key" }) { StatusCode = 403 };
+            var ip = req.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            if (!_rateLimit.Write.IsAllowed(ip))
+                return new ObjectResult(new { error = "Zu viele Anfragen. Bitte warten." }) { StatusCode = 429 };
+            if (!_auth.ValidateToken(req))
+                return AdminAuth.Unauthorized();
+
+            var body = await JsonSerializer.DeserializeAsync<UpdateUserRequest>(req.Body,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+            if (body is null || (string.IsNullOrWhiteSpace(body.DisplayName) && string.IsNullOrWhiteSpace(body.Role)))
+                return new BadRequestObjectResult(new { error = "Anzeigename oder Rolle erforderlich" });
+
+            var ok = await _auth.UpdateUserAsync(username, body.DisplayName, body.Role);
+            if (!ok)
+                return new NotFoundObjectResult(new { error = "Benutzer nicht gefunden" });
+
+            _logger.LogInformation("User updated: {User}", username);
+            return new OkObjectResult(new { message = $"Benutzer '{username}' aktualisiert" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating user");
+            return new StatusCodeResult(500);
+        }
+    }
+
+    [Function("GetUserNames")]
+    public async Task<IActionResult> GetUserNames(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "user-names")] HttpRequest req)
+    {
+        try
+        {
+            if (!_apiKey.IsValid(req))
+                return new ObjectResult(new { error = "Ungültiger API-Key" }) { StatusCode = 403 };
+            var ip = req.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            if (!_rateLimit.Read.IsAllowed(ip))
+                return new ObjectResult(new { error = "Zu viele Anfragen. Bitte warten." }) { StatusCode = 429 };
+
+            var names = await _auth.GetUserNamesAsync();
+            return new OkObjectResult(names);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading user names");
+            return new StatusCodeResult(500);
+        }
+    }
 }

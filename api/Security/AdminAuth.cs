@@ -245,6 +245,76 @@ public class AdminAuth
         }
     }
 
+    /// <summary>Update role and/or displayName for a user (admin action).</summary>
+    public async Task<bool> UpdateUserAsync(string username, string? displayName, string? role)
+    {
+        var table = _tableService.GetTableClient(TableName);
+        var key = username.ToLowerInvariant();
+
+        try
+        {
+            await table.GetEntityAsync<TableEntity>(Partition, key);
+
+            var patch = new TableEntity(Partition, key);
+            if (!string.IsNullOrWhiteSpace(displayName))
+                patch["DisplayName"] = displayName.Trim();
+            if (!string.IsNullOrWhiteSpace(role))
+            {
+                if (!ValidRoles.Contains(role, StringComparer.OrdinalIgnoreCase))
+                    role = "User";
+                patch["Role"] = role;
+            }
+            await table.UpdateEntityAsync(patch, Azure.ETag.All, TableUpdateMode.Merge);
+            return true;
+        }
+        catch (Azure.RequestFailedException ex) when (ex.Status == 404)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>Update own display name (self-service).</summary>
+    public async Task<bool> UpdateDisplayNameAsync(string username, string displayName)
+    {
+        var table = _tableService.GetTableClient(TableName);
+        var key = username.ToLowerInvariant();
+
+        try
+        {
+            await table.GetEntityAsync<TableEntity>(Partition, key);
+            var patch = new TableEntity(Partition, key)
+            {
+                { "DisplayName", displayName.Trim() }
+            };
+            await table.UpdateEntityAsync(patch, Azure.ETag.All, TableUpdateMode.Merge);
+            return true;
+        }
+        catch (Azure.RequestFailedException ex) when (ex.Status == 404)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>Return display names of all users (for dropdown filters).</summary>
+    public async Task<List<string>> GetUserNamesAsync()
+    {
+        await EnsureSeededAsync();
+        var table = _tableService.GetTableClient(TableName);
+        var names = new List<string>();
+
+        await foreach (var entity in table.QueryAsync<TableEntity>(
+            filter: $"PartitionKey eq '{Partition}'",
+            select: new[] { "RowKey", "DisplayName" }))
+        {
+            var display = entity.GetString("DisplayName") ?? entity.RowKey;
+            if (!string.IsNullOrWhiteSpace(display))
+                names.Add(display);
+        }
+
+        names.Sort(StringComparer.Create(new System.Globalization.CultureInfo("de-DE"), false));
+        return names;
+    }
+
     // ── Token creation & validation ──────────────────────────────
 
     private string CreateToken(string username)

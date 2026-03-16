@@ -9,6 +9,7 @@
     const changePwModal   = document.getElementById('changePwModal');
     const createUserModal = document.getElementById('createUserModal');
     const resetPwModal    = document.getElementById('resetPwModal');
+    const editUserModal   = document.getElementById('editUserModal');
 
     let currentUsername = '';
 
@@ -78,7 +79,8 @@
                     <small>@${esc(u.username)} · ${esc(role)} · Erstellt: ${created} · Letzter Login: ${lastLogin}</small>
                 </div>
                 <div class="user-actions">
-                    <button class="btn btn-secondary btn-sm" onclick="AdminUsers.resetPw('${esc(u.username)}')">Kennwort zurücksetzen</button>
+                    <button class="btn btn-secondary btn-sm" onclick="AdminUsers.editUser('${esc(u.username)}','${esc(u.displayName || u.username)}','${esc(role)}')">Bearbeiten</button>
+                    <button class="btn btn-secondary btn-sm" onclick="AdminUsers.resetPw('${esc(u.username)}')">Kennwort</button>
                     ${isSelf ? '' : `<button class="btn btn-sm" style="background:#ff3b30;color:#fff" onclick="AdminUsers.deleteUser('${esc(u.username)}','${esc(u.displayName || u.username)}')">Löschen</button>`}
                 </div>
             </div>`;
@@ -200,7 +202,37 @@
             showToast(data.error || 'Fehler beim Löschen', false);
         }
     };
+    /* ── Edit user (role + displayName) ─────── */
+    let editTarget = '';
+    AdminUsers.editUser = function (username, displayName, role) {
+        editTarget = username;
+        document.getElementById('editUserName').textContent = username;
+        document.getElementById('editDisplayName').value = displayName;
+        document.getElementById('editUserRole').value = role;
+        hideError('editUserError');
+        openModal(editUserModal);
+    };
+    document.getElementById('editUserCancel').addEventListener('click', () => closeModal(editUserModal));
+    document.getElementById('editUserSave').addEventListener('click', async () => {
+        const displayName = document.getElementById('editDisplayName').value.trim();
+        const role = document.getElementById('editUserRole').value;
+        if (!displayName) { showError('editUserError', 'Anzeigename darf nicht leer sein.'); return; }
 
+        const res = await apiCall(`${API}/manage/users/${encodeURIComponent(editTarget)}`, {
+            method: 'PUT',
+            headers: { ...FT_AUTH.adminHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ displayName, role })
+        });
+        if (!res) return;
+        if (res.ok) {
+            closeModal(editUserModal);
+            showToast('Benutzer aktualisiert');
+            loadUsers();
+        } else {
+            const data = await res.json().catch(() => ({}));
+            showError('editUserError', data.error || 'Fehler beim Speichern.');
+        }
+    });
     /* ── Init ────────────────────────────────── */
     loadCurrentUser().then(() => loadUsers());
 })();
