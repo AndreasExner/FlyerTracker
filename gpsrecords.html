@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#ffffff">
+    <title>LostDogTracer – GPS-Daten</title>
+    <link rel="stylesheet" href="css/shared.css">
+    <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+</head>
+<body>
+    <div class="site-banner">Hundesuchhilfe-Ostfriesland e.V.</div>
+    <div class="admin-container">
+        <div class="admin-header">
+            <h1>GPS-Daten</h1>
+            <a href="index.html" class="btn-back">Zurück</a>
+        </div>
+
+        <!-- Toolbar: filter, sort, page-size, actions -->
+        <div class="toolbar">
+            <select id="filterName" title="Filter nach Name">
+                <option value="">Alle Namen</option>
+            </select>
+
+            <select id="filterDog" title="Filter nach Hund">
+                <option value="">Alle Hunde</option>
+            </select>
+
+            <div class="multi-select" id="categoryMultiSelect">
+                <button class="multi-select-btn" type="button" id="filterCategoryBtn">Alle Kategorien</button>
+                <div class="multi-select-dropdown hidden" id="filterCategoryDropdown"></div>
+            </div>
+
+            <select id="sortField" title="Sortierung">
+                <option value="time-desc" selected>Zeitpunkt ↓ (neueste)</option>
+                <option value="time-asc">Zeitpunkt ↑ (älteste)</option>
+                <option value="name-asc">Name A–Z</option>
+                <option value="name-desc">Name Z–A</option>
+                <option value="dog-asc">Hund A–Z</option>
+                <option value="dog-desc">Hund Z–A</option>
+            </select>
+
+            <select id="pageSize" title="Einträge pro Seite">
+                <option value="20" selected>20 pro Seite</option>
+                <option value="40">40 pro Seite</option>
+                <option value="all">Alle anzeigen</option>
+            </select>
+
+            <button class="btn btn-secondary btn-sm" id="showMapBtn">🗺️ Karte</button>
+        </div>
+
+        <!-- Data table -->
+        <div class="table-wrap">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th><input type="checkbox" id="selectAll" title="Alle auswählen"></th>
+                        <th>Name</th>
+                        <th>Hund</th>
+                        <th>Zeitpunkt</th>
+                        <th>Kategorie</th>
+                        <th>Kommentar</th>
+                        <th>Foto</th>
+                    </tr>
+                </thead>
+                <tbody id="recordsBody"></tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination">
+            <span class="info" id="pageInfo"></span>
+            <div class="page-buttons" id="pageButtons"></div>
+        </div>
+
+        <!-- Action buttons below table -->
+        <div class="table-actions">
+            <button class="btn btn-primary btn-sm" id="editSelectedBtn" disabled>Ausgewählte bearbeiten</button>
+            <button class="btn btn-danger btn-sm" id="deleteSelectedBtn" disabled>Ausgewählte löschen</button>
+        </div>
+
+        <!-- Address entry panel -->
+        <details id="addressPanel" class="address-panel">
+            <summary>📍 Neuer Eintrag (Adresse)</summary>
+            <div class="address-form">
+                <div class="address-search-row">
+                    <input type="text" id="addressInput" placeholder="Straße, Ort eingeben…" autocomplete="off">
+                    <button class="btn btn-primary btn-sm" id="searchAddressBtn">Suchen</button>
+                </div>
+                <ul id="searchResults" class="search-results hidden"></ul>
+                <div id="miniMapWrap" class="mini-map-wrap hidden">
+                    <div id="miniMap"></div>
+                    <div class="map-hint">Marker verschiebbar für Feinkorrektur</div>
+                </div>
+                <div id="entryFields" class="entry-fields hidden">
+                    <div class="form-grid">
+                        <select id="entryName" title="Name"><option value="">Name wählen…</option></select>
+                        <select id="entryDog" title="Hund"><option value="">Hund wählen…</option></select>
+                        <select id="entryCategory" title="Kategorie"><option value="">Kategorie wählen…</option></select>
+                        <input type="text" id="entryComment" placeholder="Kommentar (optional, max. 40 Zeichen)" maxlength="40">
+                        <input type="datetime-local" id="entryTimestamp" title="Zeitpunkt">
+                    </div>
+                    <div class="coords-display" id="coordsDisplay"></div>
+                    <button class="btn btn-primary" id="saveEntryBtn" disabled>Eintrag speichern</button>
+                </div>
+            </div>
+        </details>
+
+        <!-- Export actions -->
+        <div class="toolbar" style="margin-top: 0.75rem;">
+            <button class="btn btn-secondary btn-sm" id="exportKmlBtn">KML Export</button>
+            <button class="btn btn-secondary btn-sm" id="exportCsvBtn">CSV Export</button>
+        </div>
+
+        <div id="toast" class="toast hidden"></div>
+
+        <!-- Edit modal -->
+        <div id="editModal" class="edit-modal hidden">
+            <div class="edit-modal-content">
+                <h2 id="editModalTitle">Eintrag bearbeiten</h2>
+                <div class="form-grid">
+                    <label>Name
+                        <select id="editName"><option value="">— nicht ändern —</option></select>
+                    </label>
+                    <label>Hund
+                        <select id="editDog"><option value="">— nicht ändern —</option></select>
+                    </label>
+                    <label>Kategorie
+                        <select id="editCategory"><option value="">— nicht ändern —</option></select>
+                    </label>
+                    <label>Kommentar
+                        <input type="text" id="editComment" placeholder="Kommentar (max. 40 Zeichen)" maxlength="40">
+                    </label>
+                    <label>Breitengrad
+                        <input type="text" id="editLatitude" readonly style="background:var(--bg-primary);color:var(--text-secondary)">
+                    </label>
+                    <label>Längengrad
+                        <input type="text" id="editLongitude" readonly style="background:var(--bg-primary);color:var(--text-secondary)">
+                    </label>
+                    <label>Genauigkeit
+                        <input type="text" id="editAccuracy" readonly style="background:var(--bg-primary);color:var(--text-secondary)">
+                    </label>
+                </div>
+                <label class="edit-photo-delete" id="editPhotoRow">
+                    <input type="checkbox" id="editDeletePhoto"> Foto löschen
+                </label>
+                <div class="edit-modal-actions">
+                    <button class="btn btn-primary" id="editSaveBtn">Speichern</button>
+                    <button class="btn btn-secondary" id="editCancelBtn">Abbrechen</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Photo lightbox -->
+        <div id="lightbox" class="lightbox hidden" onclick="this.classList.add('hidden')">
+            <img id="lightboxImg" alt="Foto">
+        </div>
+    </div>
+    <script src="js/auth.js"></script>
+    <script>
+        FT_AUTH.isLoggedIn().then(ok => { if (!ok) location.href = 'index.html'; });
+    </script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="js/gpsrecords.js"></script>
+    <script src="js/theme.js"></script>
+    <script src="js/nav.js"></script>
+</body>
+</html>
