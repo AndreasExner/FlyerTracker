@@ -67,7 +67,7 @@ const FT_AUTH = (function () {
             t.textContent = 'Sitzung abgelaufen – bitte erneut anmelden';
             t.className = 'toast error';
         }
-        setTimeout(() => { location.href = 'admin.html'; }, 1500);
+        setTimeout(() => { location.href = 'index.html'; }, 1500);
     }
 
     function getApiBase() { return API_BASE; }

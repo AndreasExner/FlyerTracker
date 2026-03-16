@@ -7,15 +7,17 @@ using Microsoft.AspNetCore.Mvc;
 namespace LostDogTracer.Api.Security;
 
 /// <summary>
-/// Admin authentication against an AdminUsers Azure Table.
+/// User authentication against a Users Azure Table.
 /// - Login validates username/password via PBKDF2 hash.
 /// - Issues HMAC-signed stateless tokens (configurable lifetime).
-/// - Seeds a default "admin" user on first use if the table is empty.
+/// - Seeds a default admin user on first use if the table is empty.
 /// </summary>
 public class AdminAuth
 {
-    private const string TableName = "AdminUsers";
-    private const string Partition = "admins";
+    private const string TableName = "Users";
+    private const string Partition = "users";
+
+    public static readonly string[] ValidRoles = { "Guest", "User", "Manager", "Administrator" };
 
     private readonly TableServiceClient _tableService;
     private readonly byte[] _tokenSecret;
@@ -56,6 +58,7 @@ public class AdminAuth
             {
                 { "DisplayName", _seedUsername },
                 { "PasswordHash", PasswordHasher.Hash(_seedPassword) },
+                { "Role", "Administrator" },
                 { "CreatedAt", DateTimeOffset.UtcNow.ToString("o") }
             };
             await table.UpsertEntityAsync(entity);
@@ -63,7 +66,23 @@ public class AdminAuth
         _seeded = true;
     }
 
-    /// <summary>Validate username + password against AdminUsers table, return signed token or null.</summary>
+    /// <summary>Look up the role for a given username (or null if not found).</summary>
+    public async Task<string?> GetUserRoleAsync(string username)
+    {
+        await EnsureSeededAsync();
+        var table = _tableService.GetTableClient(TableName);
+        try
+        {
+            var entity = await table.GetEntityAsync<TableEntity>(Partition, username.ToLowerInvariant());
+            return entity.Value.GetString("Role") ?? "User";
+        }
+        catch (Azure.RequestFailedException ex) when (ex.Status == 404)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>Validate username + password against Users table, return signed token or null.</summary>
     public async Task<string?> LoginAsync(string username, string password)
     {
         await EnsureSeededAsync();
@@ -125,6 +144,7 @@ public class AdminAuth
             {
                 username = entity.RowKey,
                 displayName = entity.GetString("DisplayName") ?? entity.RowKey,
+                role = entity.GetString("Role") ?? "User",
                 createdAt = entity.GetString("CreatedAt") ?? "",
                 lastLogin = entity.GetString("LastLogin") ?? ""
             });
@@ -132,11 +152,15 @@ public class AdminAuth
         return users;
     }
 
-    public async Task<bool> CreateUserAsync(string username, string displayName, string password)
+    public async Task<bool> CreateUserAsync(string username, string displayName, string password, string role = "User")
     {
         await EnsureSeededAsync();
         var table = _tableService.GetTableClient(TableName);
         var key = username.ToLowerInvariant();
+
+        // Validate role
+        if (!ValidRoles.Contains(role, StringComparer.OrdinalIgnoreCase))
+            role = "User";
 
         // Check if exists
         try
@@ -150,6 +174,7 @@ public class AdminAuth
         {
             { "DisplayName", displayName.Trim() },
             { "PasswordHash", PasswordHasher.Hash(password) },
+            { "Role", role },
             { "CreatedAt", DateTimeOffset.UtcNow.ToString("o") }
         };
         await table.AddEntityAsync(entity);

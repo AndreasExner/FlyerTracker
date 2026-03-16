@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#ffffff">
-    <title>LostDogTracer – Admin-Konten</title>
+    <title>LostDogTracer – Benutzer</title>
     <link rel="stylesheet" href="css/shared.css">
     <link rel="stylesheet" href="css/admin.css">
     <style>
@@ -45,8 +45,8 @@
     <div class="site-banner">Hundesuchhilfe-Ostfriesland e.V.</div>
     <div class="admin-container">
         <div class="admin-header">
-            <h1>🔑 Admin-Konten</h1>
-            <a href="admin.html" class="btn-back">Zurück</a>
+            <h1>🔑 Benutzer</h1>
+            <a href="index.html" class="btn-back">Zurück</a>
         </div>
 
         <!-- Own password change -->
@@ -62,9 +62,9 @@
         </div>
 
         <!-- User list -->
-        <p class="section-title">Alle Admin-Benutzer</p>
+        <p class="section-title">Alle Benutzer</p>
         <div class="add-row">
-            <button class="btn btn-primary" id="addUserBtn">+ Neuen Admin anlegen</button>
+            <button class="btn btn-primary" id="addUserBtn">+ Neuen Benutzer anlegen</button>
         </div>
         <div id="userList"></div>
 
@@ -89,10 +89,16 @@
     <!-- Modal: Create user -->
     <div class="modal-overlay" id="createUserModal">
         <div class="modal">
-            <h3>Neuen Admin anlegen</h3>
+            <h3>Neuen Benutzer anlegen</h3>
             <input type="text" id="newUsername" placeholder="Benutzername" autocomplete="off">
             <input type="text" id="newDisplayName" placeholder="Anzeigename" autocomplete="off">
             <input type="password" id="newUserPw" placeholder="Kennwort (min. 8 Zeichen)" autocomplete="new-password">
+            <select id="newUserRole" style="width:100%;padding:0.75rem 1rem;font-size:1rem;border:1px solid #d2d2d7;border-radius:10px;outline:none;margin-bottom:0.75rem;">
+                <option value="Guest">Guest</option>
+                <option value="User" selected>User</option>
+                <option value="Manager">Manager</option>
+                <option value="Administrator">Administrator</option>
+            </select>
             <p class="modal-error" id="createUserError"></p>
             <div class="modal-buttons">
                 <button class="btn btn-secondary btn-sm" id="createUserCancel">Abbrechen</button>
@@ -116,10 +122,10 @@
 
     <script src="js/auth.js"></script>
     <script>
-        FT_AUTH.isLoggedIn().then(ok => { if (!ok) location.href = 'admin.html'; });
+        FT_AUTH.isLoggedIn().then(ok => { if (!ok) location.href = 'index.html'; });
     </script>
-    <script src="js/admin-users.js"></script>
+    <script src="js/users.js"></script>
     <script src="js/theme.js"></script>
-    <script src="js/admin-nav.js"></script>
+    <script src="js/nav.js"></script>
 </body>
 </html>

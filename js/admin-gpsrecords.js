@@ -414,7 +414,7 @@
         const sort = sortFieldEl.value;
         if (sort) params.set('sort', sort);
         const qs = params.toString();
-        window.location.href = 'admin-map.html' + (qs ? '?' + qs : '');
+        window.location.href = 'map.html' + (qs ? '?' + qs : '');
     });
 
     // ── Events ───────────────────────────────────────────────────

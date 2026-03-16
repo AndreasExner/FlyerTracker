@@ -41,22 +41,23 @@ public class AuthFunction
             var token = await _auth.LoginAsync(body.Username, body.Password);
             if (token is null)
             {
-                _logger.LogWarning("Failed admin login attempt for user: {User}", body.Username);
+                _logger.LogWarning("Failed login attempt for user: {User}", body.Username);
                 return new UnauthorizedObjectResult(new { error = "Benutzername oder Kennwort falsch" });
             }
 
-            _logger.LogInformation("Admin login successful: {User}", body.Username);
-            return new OkObjectResult(new { token });
+            var role = await _auth.GetUserRoleAsync(body.Username) ?? "User";
+            _logger.LogInformation("Login successful: {User}", body.Username);
+            return new OkObjectResult(new { token, role });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during admin login");
+            _logger.LogError(ex, "Error during login");
             return new StatusCodeResult(500);
         }
     }
 
     [Function("AdminVerify")]
-    public IActionResult Verify(
+    public async Task<IActionResult> Verify(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "auth/verify")] HttpRequest req)
     {
         var ip = req.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
@@ -67,7 +68,8 @@ public class AuthFunction
             return AdminAuth.Unauthorized();
 
         var username = _auth.GetUsernameFromToken(req);
-        return new OkObjectResult(new { valid = true, username });
+        var role = username != null ? await _auth.GetUserRoleAsync(username) ?? "User" : "User";
+        return new OkObjectResult(new { valid = true, username, role });
     }
 
     [Function("ChangePassword")]

@@ -1,18 +1,18 @@
-// ── Admin Hamburger Navigation ──────────────────────────────────
+// ── Hamburger Navigation ──────────────────────────────────
 (function () {
-    // Inject on admin sub-pages and admin.html menu page
+    // Inject on sub-pages and index.html menu page
     const path = location.pathname;
-    const isSubPage = /admin-(gpsrecords|map|names|lostdogs|categories|users|backup)\.html$/i.test(path);
-    const isAdminHome = /admin\.html$/i.test(path);
-    if (!isSubPage && !isAdminHome) return;
+    const isSubPage = /(?:gpsrecords|map|names|lostdogs|categories|users|backup)\.html$/i.test(path);
+    const isHome = /index\.html$/i.test(path) || path === '/' || path.endsWith('/');
+    if (!isSubPage && !isHome) return;
 
     const pages = [
-        { href: 'admin-gpsrecords.html', icon: '📍', label: 'GPS-Daten' },
-        { href: 'admin-names.html',      icon: '👤', label: 'Namen' },
-        { href: 'admin-lostdogs.html',   icon: '🐕', label: 'Hunde' },
-        { href: 'admin-categories.html', icon: '🏷️', label: 'Kategorien' },
-        { href: 'admin-users.html',      icon: '🔑', label: 'Admin-Konten' },
-        { href: 'admin-backup.html',     icon: '🔧', label: 'Wartung' },
+        { href: 'gpsrecords.html', icon: '📍', label: 'GPS-Daten' },
+        { href: 'names.html',      icon: '👤', label: 'Namen' },
+        { href: 'lostdogs.html',   icon: '🐕', label: 'Hunde' },
+        { href: 'categories.html', icon: '🏷️', label: 'Kategorien' },
+        { href: 'users.html',      icon: '🔑', label: 'Benutzer' },
+        { href: 'backup.html',     icon: '🔧', label: 'Wartung' },
     ];
 
     // Build DOM
@@ -23,7 +23,7 @@
     drawer.className = 'nav-drawer';
 
     // Home link
-    drawer.innerHTML = `<a href="admin.html"${isAdminHome ? ' class="active"' : ''}><span class="nav-icon">🏠</span> Übersicht</a><div class="nav-divider"></div>`;
+    drawer.innerHTML = `<a href="index.html"${isHome ? ' class="active"' : ''}><span class="nav-icon">🏠</span> Übersicht</a><div class="nav-divider"></div>`;
 
     // Page links
     const currentFile = path.split('/').pop();
@@ -57,7 +57,7 @@
     logoutLink.addEventListener('click', e => {
         e.preventDefault();
         if (typeof FT_AUTH !== 'undefined') FT_AUTH.logout();
-        location.href = 'admin.html';
+        location.href = 'index.html';
     });
     drawer.appendChild(logoutLink);
 

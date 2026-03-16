@@ -1,4 +1,4 @@
-/* js/admin-users.js — Admin-Konten Verwaltung */
+/* js/users.js — Benutzerverwaltung */
 (function () {
     const API = FT_AUTH.getApiBase();
 
@@ -54,7 +54,7 @@
 
     /* ── Load user list ──────────────────────── */
     async function loadUsers() {
-        const res = await apiCall(`${API}/manage/admin-users`, { headers: FT_AUTH.adminHeaders() });
+        const res = await apiCall(`${API}/manage/users`, { headers: FT_AUTH.adminHeaders() });
         if (!res) return;
         if (!res.ok) { showToast('Fehler beim Laden', false); return; }
         const users = await res.json();
@@ -70,11 +70,12 @@
             const isSelf = u.username.toLowerCase() === currentUsername.toLowerCase();
             const created = u.createdAt ? new Date(u.createdAt).toLocaleDateString('de-DE') : '—';
             const lastLogin = u.lastLogin ? new Date(u.lastLogin).toLocaleString('de-DE') : 'Nie';
+            const role = u.role || 'User';
             return `
             <div class="user-card">
                 <div class="user-info">
                     <strong>${esc(u.displayName || u.username)}</strong>
-                    <small>@${esc(u.username)} · Erstellt: ${created} · Letzter Login: ${lastLogin}</small>
+                    <small>@${esc(u.username)} · ${esc(role)} · Erstellt: ${created} · Letzter Login: ${lastLogin}</small>
                 </div>
                 <div class="user-actions">
                     <button class="btn btn-secondary btn-sm" onclick="AdminUsers.resetPw('${esc(u.username)}')">Kennwort zurücksetzen</button>
@@ -136,10 +137,10 @@
         if (!username || !password) { showError('createUserError', 'Benutzername und Kennwort sind Pflicht.'); return; }
         if (password.length < 8) { showError('createUserError', 'Kennwort: mindestens 8 Zeichen.'); return; }
 
-        const res = await apiCall(`${API}/manage/admin-users`, {
+        const res = await apiCall(`${API}/manage/users`, {
             method: 'POST',
             headers: { ...FT_AUTH.adminHeaders(), 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, displayName: displayName || username, password })
+            body: JSON.stringify({ username, displayName: displayName || username, password, role: document.getElementById('newUserRole').value })
         });
         if (!res) return;
         if (res.ok) {
@@ -168,7 +169,7 @@
         const pw = document.getElementById('resetNewPw').value.trim();
         if (!pw || pw.length < 8) { showError('resetPwError', 'Mindestens 8 Zeichen.'); return; }
 
-        const res = await apiCall(`${API}/manage/admin-users/${encodeURIComponent(resetTarget)}/reset-password`, {
+        const res = await apiCall(`${API}/manage/users/${encodeURIComponent(resetTarget)}/reset-password`, {
             method: 'POST',
             headers: { ...FT_AUTH.adminHeaders(), 'Content-Type': 'application/json' },
             body: JSON.stringify({ newPassword: pw })
@@ -185,8 +186,8 @@
 
     /* ── Delete user ─────────────────────────── */
     AdminUsers.deleteUser = async function (username, display) {
-        if (!confirm(`Admin "${display}" wirklich löschen?`)) return;
-        const res = await apiCall(`${API}/manage/admin-users/${encodeURIComponent(username)}`, {
+        if (!confirm(`Benutzer "${display}" wirklich löschen?`)) return;
+        const res = await apiCall(`${API}/manage/users/${encodeURIComponent(username)}`, {
             method: 'DELETE',
             headers: FT_AUTH.adminHeaders()
         });
