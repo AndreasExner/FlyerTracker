@@ -9,6 +9,7 @@
     const STORAGE_KEY_CATEGORY = 'lostdogtracer_field_category';
 
     const userNameEl = document.getElementById('userName');
+    const userNameKeyEl = document.getElementById('userNameKey');
     const lostDogEl = document.getElementById('lostDog');
     const categoryEl = document.getElementById('category');
     const commentEl = document.getElementById('comment');
@@ -98,18 +99,22 @@
             const res = await fetch(`${API_BASE}/auth/verify`, { headers: FT_AUTH.adminHeaders() });
             if (res.ok) {
                 const data = await res.json();
-                const display = data.displayName || data.username || '';
-                userNameEl.value = display;
-                if (typeof FT_OFFLINE !== 'undefined') FT_OFFLINE.saveDropdownData('field_currentUser', display);
+                userNameKeyEl.value = data.username || '';
+                userNameEl.value = data.displayName || data.username || '';
+                if (typeof FT_OFFLINE !== 'undefined') {
+                    FT_OFFLINE.saveDropdownData('field_currentUser', data.username || '');
+                    FT_OFFLINE.saveDropdownData('field_currentUserDisplay', data.displayName || data.username || '');
+                }
             } else {
                 throw new Error();
             }
         } catch {
-            // Offline fallback
             if (typeof FT_OFFLINE !== 'undefined') {
                 const cached = await FT_OFFLINE.getDropdownData('field_currentUser');
-                if (cached) { userNameEl.value = cached; return; }
+                const cachedDisplay = await FT_OFFLINE.getDropdownData('field_currentUserDisplay');
+                if (cached) { userNameKeyEl.value = cached; userNameEl.value = cachedDisplay || cached; return; }
             }
+            userNameKeyEl.value = '';
             userNameEl.value = FT_AUTH.getRole() ? '(Offline)' : '';
         }
     }
@@ -176,23 +181,23 @@
     function onSelectionChange() { persistSelections(); updateButtonState(); }
 
     function updateButtonState() {
-        saveBtnEl.disabled = !(userNameEl.value && lostDogEl.value && categoryEl.value);
-        const ok = !!(userNameEl.value && lostDogEl.value);
+        saveBtnEl.disabled = !(userNameKeyEl.value && lostDogEl.value && categoryEl.value);
+        const ok = !!(userNameKeyEl.value && lostDogEl.value);
         editBtnEl.disabled = !ok;
         mapBtnEl.disabled = !ok;
-        [userNameEl, lostDogEl, categoryEl].forEach(el => el.classList.toggle('missing', !el.value));
+        [lostDogEl, categoryEl].forEach(el => el.classList.toggle('missing', !el.value));
     }
 
     function onEditRecords() {
         const p = new URLSearchParams();
-        p.set('name', userNameEl.value);
+        p.set('name', userNameKeyEl.value);
         p.set('lostDog', lostDogEl.value);
         window.location.href = 'field-records.html?' + p;
     }
 
     function onShowMap() {
         const p = new URLSearchParams();
-        p.set('name', userNameEl.value);
+        p.set('name', userNameKeyEl.value);
         p.set('lostDog', lostDogEl.value);
         window.location.href = 'field-map.html?' + p;
     }
@@ -205,7 +210,7 @@
         try {
             const position = await getCurrentPosition();
             const entry = {
-                name: userNameEl.value, lostDog: lostDogEl.value,
+                name: userNameKeyEl.value, lostDog: lostDogEl.value,
                 category: categoryEl.value, comment: commentEl.value.trim(),
                 latitude: position.coords.latitude, longitude: position.coords.longitude,
                 accuracy: position.coords.accuracy, timestamp: new Date().toISOString()
