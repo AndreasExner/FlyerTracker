@@ -149,12 +149,12 @@
             if (!res.ok) throw new Error('Fehler beim Laden der Hunde');
             const dogs = await res.json();
             if (typeof FT_OFFLINE !== 'undefined') FT_OFFLINE.saveDropdownData('lostDogs', dogs);
-            populateSelect(lostDogEl, dogs);
+            populateSelectObjects(lostDogEl, dogs);
         } catch (err) {
             console.error(err);
             if (typeof FT_OFFLINE !== 'undefined') {
                 const cached = await FT_OFFLINE.getDropdownData('lostDogs');
-                if (cached) { populateSelect(lostDogEl, cached); return; }
+                if (cached) { populateSelectObjects(lostDogEl, cached); return; }
             }
             showToast('Hunde konnten nicht geladen werden', true);
         } finally {
@@ -168,14 +168,13 @@
             const res = await fetch(`${API_BASE}/categories`, { headers: { 'X-API-Key': API_KEY } });
             if (!res.ok) throw new Error('Fehler beim Laden der Kategorien');
             const cats = await res.json();
-            const catNames = cats.map(c => c.name || c);
-            if (typeof FT_OFFLINE !== 'undefined') FT_OFFLINE.saveDropdownData('categories', catNames);
-            populateSelect(categoryEl, catNames);
+            if (typeof FT_OFFLINE !== 'undefined') FT_OFFLINE.saveDropdownData('categories', cats);
+            populateSelectObjects(categoryEl, cats);
         } catch (err) {
             console.error(err);
             if (typeof FT_OFFLINE !== 'undefined') {
                 const cached = await FT_OFFLINE.getDropdownData('categories');
-                if (cached) { populateSelect(categoryEl, cached); return; }
+                if (cached) { populateSelectObjects(categoryEl, cached); return; }
             }
             showToast('Kategorien konnten nicht geladen werden', true);
         } finally {
@@ -188,6 +187,15 @@
             const opt = document.createElement('option');
             opt.value = item;
             opt.textContent = item;
+            selectEl.appendChild(opt);
+        });
+    }
+
+    function populateSelectObjects(selectEl, items) {
+        items.forEach(item => {
+            const opt = document.createElement('option');
+            opt.value = item.rowKey || item;
+            opt.textContent = item.displayName || item;
             selectEl.appendChild(opt);
         });
     }

@@ -338,6 +338,22 @@ public class AdminAuth
         return names;
     }
 
+    /// <summary>Return a map of username → displayName for FK resolution.</summary>
+    public async Task<Dictionary<string, string>> GetUserDisplayNameMapAsync()
+    {
+        await EnsureSeededAsync();
+        var table = _tableService.GetTableClient(TableName);
+        var map = new Dictionary<string, string>();
+
+        await foreach (var entity in table.QueryAsync<TableEntity>(
+            filter: $"PartitionKey eq '{Partition}'",
+            select: new[] { "RowKey", "DisplayName" }))
+        {
+            map[entity.RowKey] = entity.GetString("DisplayName") ?? entity.RowKey;
+        }
+        return map;
+    }
+
     /// <summary>Return login usernames (RowKey), excluding "admin".</summary>
     public async Task<List<string>> GetUserLoginNamesAsync()
     {

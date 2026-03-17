@@ -41,23 +41,23 @@ public class LostDogsFunction
             var tableClient = _tableService.GetTableClient("LostDogs");
             await tableClient.CreateIfNotExistsAsync();
 
-            var items = new List<(string display, string location, string suffix)>();
+            var items = new List<(string display, string displayName, string suffix)>();
 
             await foreach (var entity in tableClient.QueryAsync<TableEntity>())
             {
-                var location = entity.GetString("Location") ?? entity.RowKey;
+                var displayName = entity.GetString("DisplayName") ?? entity.RowKey;
                 var suffix = entity.GetString("Suffix") ?? "";
-                if (!string.IsNullOrWhiteSpace(location))
+                if (!string.IsNullOrWhiteSpace(displayName))
                 {
-                    var display = string.IsNullOrEmpty(suffix) ? location : $"{location} ({suffix})";
-                    items.Add((display, location, suffix));
+                    var display = string.IsNullOrEmpty(suffix) ? displayName : $"{displayName} ({suffix})";
+                    items.Add((display, displayName, suffix));
                 }
             }
 
             var comparer = StringComparer.Create(new System.Globalization.CultureInfo("de-DE"), false);
             items.Sort((a, b) => comparer.Compare(a.display, b.display));
 
-            return new OkObjectResult(items.Select(i => i.location));
+            return new OkObjectResult(items.Select(i => new { rowKey = $"{i.displayName}_{i.suffix}", displayName = i.displayName }));
         }
         catch (Exception ex)
         {
@@ -88,8 +88,8 @@ public class LostDogsFunction
             var filter = $"Suffix eq '{key.Replace("'", "''")}'";
             await foreach (var entity in tableClient.QueryAsync<TableEntity>(filter))
             {
-                var location = entity.GetString("Location") ?? entity.RowKey;
-                return new OkObjectResult(new { location });
+                var displayName = entity.GetString("DisplayName") ?? entity.RowKey;
+                return new OkObjectResult(new { displayName, rowKey = entity.RowKey });
             }
 
             return new NotFoundObjectResult(new { error = "Hund nicht gefunden" });
@@ -117,21 +117,21 @@ public class LostDogsFunction
             var tableClient = _tableService.GetTableClient("LostDogs");
             await tableClient.CreateIfNotExistsAsync();
 
-            var items = new List<(string partitionKey, string rowKey, string location, string suffix)>();
+            var items = new List<(string partitionKey, string rowKey, string displayName, string suffix)>();
             await foreach (var entity in tableClient.QueryAsync<TableEntity>())
             {
                 items.Add((
                     entity.PartitionKey,
                     entity.RowKey,
-                    entity.GetString("Location") ?? entity.RowKey,
+                    entity.GetString("DisplayName") ?? entity.RowKey,
                     entity.GetString("Suffix") ?? ""
                 ));
             }
 
             var comparer = StringComparer.Create(new System.Globalization.CultureInfo("de-DE"), false);
-            items.Sort((a, b) => comparer.Compare(a.location, b.location));
+            items.Sort((a, b) => comparer.Compare(a.displayName, b.displayName));
 
-            return new OkObjectResult(items.Select(i => new { i.partitionKey, i.rowKey, i.location, i.suffix }));
+            return new OkObjectResult(items.Select(i => new { i.partitionKey, i.rowKey, i.displayName, i.suffix }));
         }
         catch (Exception ex)
         {
@@ -155,30 +155,30 @@ public class LostDogsFunction
                 return AdminAuth.Forbidden();
 
             var body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body);
-            var location = body.GetProperty("location").GetString();
+            var displayName = body.GetProperty("location").GetString();
 
-            if (string.IsNullOrWhiteSpace(location))
+            if (string.IsNullOrWhiteSpace(displayName))
                 return new BadRequestObjectResult(new { error = "Name darf nicht leer sein" });
 
             var tableClient = _tableService.GetTableClient("LostDogs");
             await tableClient.CreateIfNotExistsAsync();
 
-            var trimmedLocation = location.Trim();
+            var trimmed = displayName.Trim();
 
             // Generate cryptographically random 6-char alphanumeric suffix
             var suffix = GenerateRandomSuffix(6);
-            var rowKey = $"{trimmedLocation}_{suffix}";
+            var rowKey = $"{trimmed}_{suffix}";
 
             var entity = new TableEntity("locations", rowKey)
             {
-                { "Location", trimmedLocation },
+                { "DisplayName", trimmed },
                 { "Suffix", suffix }
             };
 
             await tableClient.AddEntityAsync(entity);
-            _logger.LogInformation("Lost dog created: {Location} ({Suffix})", trimmedLocation, suffix);
+            _logger.LogInformation("Lost dog created: {DisplayName} ({Suffix})", trimmed, suffix);
 
-            return new CreatedResult("", new { partitionKey = "locations", rowKey, location = trimmedLocation, suffix });
+            return new CreatedResult("", new { partitionKey = "locations", rowKey, displayName = trimmed, suffix });
         }
         catch (Exception ex)
         {

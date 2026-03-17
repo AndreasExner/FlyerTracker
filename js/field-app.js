@@ -35,11 +35,11 @@
     }
 
     async function init() {
-        await Promise.all([loadNames(), loadLostDogs(), loadCategories()]);
+        await loadCurrentUser();
+        await Promise.all([loadLostDogs(), loadCategories()]);
         restoreSelections();
         updateButtonState();
 
-        userNameEl.addEventListener('change', onSelectionChange);
         lostDogEl.addEventListener('change', onSelectionChange);
         categoryEl.addEventListener('change', onSelectionChange);
         saveBtnEl.addEventListener('click', onSaveLocation);
@@ -93,21 +93,25 @@
         });
     }
 
-    async function loadNames() {
+    async function loadCurrentUser() {
         try {
-            userNameEl.classList.add('loading');
-            const res = await fetch(`${API_BASE}/user-names`, { headers: API_KEY_HDR });
-            if (!res.ok) throw new Error();
-            const names = await res.json();
-            if (typeof FT_OFFLINE !== 'undefined') FT_OFFLINE.saveDropdownData('field_names', names);
-            populateSelect(userNameEl, names);
-        } catch {
-            if (typeof FT_OFFLINE !== 'undefined') {
-                const cached = await FT_OFFLINE.getDropdownData('field_names');
-                if (cached) { populateSelect(userNameEl, cached); return; }
+            const res = await fetch(`${API_BASE}/auth/verify`, { headers: FT_AUTH.adminHeaders() });
+            if (res.ok) {
+                const data = await res.json();
+                const display = data.username || '';
+                userNameEl.value = display;
+                if (typeof FT_OFFLINE !== 'undefined') FT_OFFLINE.saveDropdownData('field_currentUser', display);
+            } else {
+                throw new Error();
             }
-            showToast('Namen konnten nicht geladen werden', true);
-        } finally { userNameEl.classList.remove('loading'); }
+        } catch {
+            // Offline fallback
+            if (typeof FT_OFFLINE !== 'undefined') {
+                const cached = await FT_OFFLINE.getDropdownData('field_currentUser');
+                if (cached) { userNameEl.value = cached; return; }
+            }
+            userNameEl.value = FT_AUTH.getRole() ? '(Offline)' : '';
+        }
     }
 
     async function loadLostDogs() {
@@ -117,11 +121,11 @@
             if (!res.ok) throw new Error();
             const dogs = await res.json();
             if (typeof FT_OFFLINE !== 'undefined') FT_OFFLINE.saveDropdownData('field_lostDogs', dogs);
-            populateSelect(lostDogEl, dogs);
+            populateSelectObjects(lostDogEl, dogs);
         } catch {
             if (typeof FT_OFFLINE !== 'undefined') {
                 const cached = await FT_OFFLINE.getDropdownData('field_lostDogs');
-                if (cached) { populateSelect(lostDogEl, cached); return; }
+                if (cached) { populateSelectObjects(lostDogEl, cached); return; }
             }
             showToast('Hunde konnten nicht geladen werden', true);
         } finally { lostDogEl.classList.remove('loading'); }
@@ -133,13 +137,12 @@
             const res = await fetch(`${API_BASE}/categories`, { headers: API_KEY_HDR });
             if (!res.ok) throw new Error();
             const cats = await res.json();
-            const catNames = cats.map(c => c.name || c);
-            if (typeof FT_OFFLINE !== 'undefined') FT_OFFLINE.saveDropdownData('field_categories', catNames);
-            populateSelect(categoryEl, catNames);
+            if (typeof FT_OFFLINE !== 'undefined') FT_OFFLINE.saveDropdownData('field_categories', cats);
+            populateSelectObjects(categoryEl, cats);
         } catch {
             if (typeof FT_OFFLINE !== 'undefined') {
                 const cached = await FT_OFFLINE.getDropdownData('field_categories');
-                if (cached) { populateSelect(categoryEl, cached); return; }
+                if (cached) { populateSelectObjects(categoryEl, cached); return; }
             }
             showToast('Kategorien konnten nicht geladen werden', true);
         } finally { categoryEl.classList.remove('loading'); }
@@ -149,17 +152,23 @@
         items.forEach(item => { const o = document.createElement('option'); o.value = item; o.textContent = item; el.appendChild(o); });
     }
 
+    function populateSelectObjects(el, items) {
+        items.forEach(item => {
+            const o = document.createElement('option');
+            o.value = item.rowKey || item;
+            o.textContent = item.displayName || item;
+            el.appendChild(o);
+        });
+    }
+
     function restoreSelections() {
-        const n = localStorage.getItem(STORAGE_KEY_NAME);
         const l = localStorage.getItem(STORAGE_KEY_LOCATION);
         const c = localStorage.getItem(STORAGE_KEY_CATEGORY);
-        if (n) userNameEl.value = n;
         if (l) lostDogEl.value = l;
         if (c) categoryEl.value = c;
     }
 
     function persistSelections() {
-        localStorage.setItem(STORAGE_KEY_NAME, userNameEl.value);
         localStorage.setItem(STORAGE_KEY_LOCATION, lostDogEl.value);
         localStorage.setItem(STORAGE_KEY_CATEGORY, categoryEl.value);
     }

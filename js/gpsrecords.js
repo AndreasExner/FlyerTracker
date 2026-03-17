@@ -74,8 +74,8 @@
         while (filterDogEl.options.length > 1) filterDogEl.remove(1);
         dogs.forEach(d => {
             const opt = document.createElement('option');
-            opt.value = d;
-            opt.textContent = d;
+            opt.value = d.rowKey || d;
+            opt.textContent = d.displayName || d;
             filterDogEl.appendChild(opt);
         });
         filterDogEl.value = currentDog;
@@ -84,8 +84,8 @@
         while (filterNameEl.options.length > 1) filterNameEl.remove(1);
         names.forEach(n => {
             const opt = document.createElement('option');
-            opt.value = n;
-            opt.textContent = n;
+            opt.value = n.rowKey || n;
+            opt.textContent = n.displayName || n;
             filterNameEl.appendChild(opt);
         });
         filterNameEl.value = currentName;
@@ -94,19 +94,21 @@
         if (!catDropdownBuilt) {
             catDropdownEl.innerHTML = '';
             categories.forEach(c => {
+                const key = c.rowKey || c;
+                const display = c.displayName || c;
                 const label = document.createElement('label');
                 label.className = 'multi-select-item';
                 const cb = document.createElement('input');
                 cb.type = 'checkbox';
-                cb.value = c;
-                if (currentCat.includes(c)) cb.checked = true;
+                cb.value = key;
+                if (currentCat.includes(key)) cb.checked = true;
                 cb.addEventListener('change', () => {
                     updateCatBtnText();
                     clearTimeout(catFilterTimer);
                     catFilterTimer = setTimeout(() => { currentPage = 1; loadRecords(); }, 500);
                 });
                 label.appendChild(cb);
-                label.appendChild(document.createTextNode(' ' + c));
+                label.appendChild(document.createTextNode(' ' + display));
                 catDropdownEl.appendChild(label);
             });
             updateCatBtnText();
@@ -476,7 +478,7 @@
         try {
             const hdrs = FT_AUTH.publicHeaders();
             const [namesRes, dogsRes, catsRes] = await Promise.all([
-                fetch(`${API_BASE}/names`, { headers: hdrs }),
+                fetch(`${API_BASE}/user-names`, { headers: hdrs }),
                 fetch(`${API_BASE}/lost-dogs`, { headers: hdrs }),
                 fetch(`${API_BASE}/categories`, { headers: hdrs })
             ]);
@@ -485,8 +487,8 @@
             const cats = await catsRes.json();
 
             names.forEach(n => { const o = document.createElement('option'); o.value = n; o.textContent = n; entryNameEl.appendChild(o); });
-            dogs.forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; entryDogEl.appendChild(o); });
-            cats.forEach(c => { const v = c.name || c; const o = document.createElement('option'); o.value = v; o.textContent = v; entryCategoryEl.appendChild(o); });
+            dogs.forEach(d => { const o = document.createElement('option'); o.value = d.rowKey || d; o.textContent = d.displayName || d; entryDogEl.appendChild(o); });
+            cats.forEach(c => { const o = document.createElement('option'); o.value = c.rowKey || c; o.textContent = c.displayName || c; entryCategoryEl.appendChild(o); });
             entryDropdownsLoaded = true;
         } catch (e) {
             console.error('Failed to load entry dropdowns', e);
@@ -670,7 +672,7 @@
         try {
             const hdrs = FT_AUTH.publicHeaders();
             const [namesRes, dogsRes, catsRes] = await Promise.all([
-                fetch(`${API_BASE}/names`, { headers: hdrs }),
+                fetch(`${API_BASE}/user-names`, { headers: hdrs }),
                 fetch(`${API_BASE}/lost-dogs`, { headers: hdrs }),
                 fetch(`${API_BASE}/categories`, { headers: hdrs })
             ]);
@@ -679,8 +681,8 @@
             const cats = await catsRes.json();
 
             names.forEach(n => { const o = document.createElement('option'); o.value = n; o.textContent = n; editNameEl.appendChild(o); });
-            dogs.forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; editDogEl.appendChild(o); });
-            cats.forEach(c => { const v = c.name || c; const o = document.createElement('option'); o.value = v; o.textContent = v; editCategoryEl.appendChild(o); });
+            dogs.forEach(d => { const o = document.createElement('option'); o.value = d.rowKey || d; o.textContent = d.displayName || d; editDogEl.appendChild(o); });
+            cats.forEach(c => { const o = document.createElement('option'); o.value = c.rowKey || c; o.textContent = c.displayName || c; editCategoryEl.appendChild(o); });
             editDropdownsLoaded = true;
         } catch {
             showToast('Dropdown-Daten konnten nicht geladen werden', true);

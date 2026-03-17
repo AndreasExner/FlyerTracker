@@ -94,7 +94,7 @@
                 return false;
             }
             const data = await res.json();
-            resolvedDogName = data.location;
+            resolvedDogName = data.displayName;
             dogNameEl.textContent = resolvedDogName;
             return true;
         } catch (err) {

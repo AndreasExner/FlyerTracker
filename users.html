@@ -49,18 +49,6 @@
             <a href="index.html" class="btn-back">Zurück</a>
         </div>
 
-        <!-- Own password change -->
-        <p class="section-title">Eigenes Kennwort ändern</p>
-        <div class="user-card" style="background:#f0f4ff">
-            <div class="user-info">
-                <strong id="currentUser">—</strong>
-                <small>Angemeldet als</small>
-            </div>
-            <div class="user-actions">
-                <button class="btn btn-secondary btn-sm" id="changePwBtn">Kennwort ändern</button>
-            </div>
-        </div>
-
         <!-- User list -->
         <p class="section-title">Alle Benutzer</p>
         <div class="add-row">
@@ -69,21 +57,6 @@
         <div id="userList"></div>
 
         <div id="toast" class="toast hidden"></div>
-    </div>
-
-    <!-- Modal: Change own password -->
-    <div class="modal-overlay" id="changePwModal">
-        <div class="modal">
-            <h3>Eigenes Kennwort ändern</h3>
-            <input type="password" id="oldPw" placeholder="Aktuelles Kennwort" autocomplete="current-password">
-            <input type="password" id="newPw" placeholder="Neues Kennwort (min. 8 Zeichen)" autocomplete="new-password">
-            <input type="password" id="newPw2" placeholder="Neues Kennwort wiederholen" autocomplete="new-password">
-            <p class="modal-error" id="changePwError"></p>
-            <div class="modal-buttons">
-                <button class="btn btn-secondary btn-sm" id="changePwCancel">Abbrechen</button>
-                <button class="btn btn-primary btn-sm" id="changePwSave">Speichern</button>
-            </div>
-        </div>
     </div>
 
     <!-- Modal: Create user -->

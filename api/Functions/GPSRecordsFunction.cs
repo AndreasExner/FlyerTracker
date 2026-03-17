@@ -43,6 +43,22 @@ public class GPSRecordsFunction
                 return new ObjectResult(new { error = "Zu viele Anfragen. Bitte warten." }) { StatusCode = 429 };
             if (await _adminAuth.ValidateTokenWithRole(req, 2) == 0)
                 return AdminAuth.Forbidden();
+
+            // Build lookup maps for FK resolution
+            var dogLookup = new Dictionary<string, string>();
+            var dogTable = _tableService.GetTableClient("LostDogs");
+            await dogTable.CreateIfNotExistsAsync();
+            await foreach (var e in dogTable.QueryAsync<TableEntity>(select: new[] { "RowKey", "DisplayName" }))
+                dogLookup[e.RowKey] = e.GetString("DisplayName") ?? e.RowKey;
+
+            var catLookup = new Dictionary<string, string>();
+            var catTable = _tableService.GetTableClient("Categories");
+            await catTable.CreateIfNotExistsAsync();
+            await foreach (var e in catTable.QueryAsync<TableEntity>(select: new[] { "RowKey", "DisplayName" }))
+                catLookup[e.RowKey] = e.GetString("DisplayName") ?? e.RowKey;
+
+            var userLookup = await _adminAuth.GetUserDisplayNameMapAsync();
+
             var tableClient = _tableService.GetTableClient("GPSRecords");
             await tableClient.CreateIfNotExistsAsync();
 
@@ -59,58 +75,66 @@ public class GPSRecordsFunction
             int page = int.TryParse(pageStr, out var p) ? Math.Max(1, p) : 1;
 
             var allRecords = new List<object>();
-            var allLostDogs = new HashSet<string>();
-            var allNames = new HashSet<string>();
-            var allCategories = new HashSet<string>();
+            var allLostDogKeys = new HashSet<string>();
+            var allNameKeys = new HashSet<string>();
+            var allCategoryKeys = new HashSet<string>();
             await foreach (var entity in tableClient.QueryAsync<TableEntity>())
             {
-                var lostDog = entity.GetString("LostDog") ?? "";
-                var name = entity.PartitionKey ?? "";
-                var category = entity.GetString("Category") ?? "";
-                if (!string.IsNullOrEmpty(lostDogFilter) && lostDog != lostDogFilter)
+                var lostDogKey = entity.GetString("LostDog") ?? "";
+                var nameKey = entity.PartitionKey ?? "";
+                var categoryKey = entity.GetString("Category") ?? "";
+
+                // Filters work on RowKey (FK) values
+                if (!string.IsNullOrEmpty(lostDogFilter) && lostDogKey != lostDogFilter)
                     continue;
-                if (!string.IsNullOrEmpty(nameFilter) && name != nameFilter)
+                if (!string.IsNullOrEmpty(nameFilter) && nameKey != nameFilter)
                     continue;
-                if (categoryFilters.Length > 0 && !categoryFilters.Contains(category))
+                if (categoryFilters.Length > 0 && !categoryFilters.Contains(categoryKey))
                     continue;
 
-                if (!string.IsNullOrEmpty(lostDog)) allLostDogs.Add(lostDog);
-                if (!string.IsNullOrEmpty(name)) allNames.Add(name);
-                if (!string.IsNullOrEmpty(category)) allCategories.Add(category);
+                if (!string.IsNullOrEmpty(lostDogKey)) allLostDogKeys.Add(lostDogKey);
+                if (!string.IsNullOrEmpty(nameKey)) allNameKeys.Add(nameKey);
+                if (!string.IsNullOrEmpty(categoryKey)) allCategoryKeys.Add(categoryKey);
 
                 allRecords.Add(new
                 {
                     partitionKey = entity.PartitionKey,
                     rowKey = entity.RowKey,
-                    name = entity.PartitionKey,
-                    lostDog,
+                    nameKey,
+                    name = userLookup.GetValueOrDefault(nameKey, nameKey),
+                    lostDogKey,
+                    lostDog = dogLookup.GetValueOrDefault(lostDogKey, lostDogKey),
                     latitude = GetDoubleSafe(entity, "Latitude"),
                     longitude = GetDoubleSafe(entity, "Longitude"),
                     accuracy = GetDoubleSafe(entity, "Accuracy"),
                     recordedAt = entity.GetString("RecordedAt") ?? entity.Timestamp?.ToString("o") ?? "",
                     photoUrl = entity.GetString("PhotoUrl") ?? "",
                     comment = entity.GetString("Comment") ?? "",
-                    category = entity.GetString("Category") ?? ""
+                    categoryKey,
+                    category = catLookup.GetValueOrDefault(categoryKey, categoryKey)
                 });
             }
 
             int totalCount = allRecords.Count;
 
             var deComparer = StringComparer.Create(new System.Globalization.CultureInfo("de-DE"), false);
-            var lostDogs = allLostDogs.OrderBy(d => d, deComparer).ToList();
-            var names = allNames.OrderBy(n => n, deComparer).ToList();
-            var categories = allCategories.OrderBy(c => c, deComparer).ToList();
 
-            // Paginate
+            // Build filter dropdown options with rowKey + displayName
+            var lostDogs = allLostDogKeys
+                .Select(k => new { rowKey = k, displayName = dogLookup.GetValueOrDefault(k, k) })
+                .OrderBy(x => x.displayName, deComparer).ToList();
+            var names = allNameKeys
+                .Select(k => new { rowKey = k, displayName = userLookup.GetValueOrDefault(k, k) })
+                .OrderBy(x => x.displayName, deComparer).ToList();
+            var categories = allCategoryKeys
+                .Select(k => new { rowKey = k, displayName = catLookup.GetValueOrDefault(k, k) })
+                .OrderBy(x => x.displayName, deComparer).ToList();
+
             IEnumerable<object> pagedRecords;
             if (pageSize.HasValue)
-            {
                 pagedRecords = allRecords.Skip((page - 1) * pageSize.Value).Take(pageSize.Value);
-            }
             else
-            {
                 pagedRecords = allRecords;
-            }
 
             return new OkObjectResult(new
             {
@@ -214,6 +238,19 @@ public class GPSRecordsFunction
             if (string.IsNullOrWhiteSpace(nameFilter) || string.IsNullOrWhiteSpace(lostDogFilter))
                 return new BadRequestObjectResult(new { error = "name und lostDog sind erforderlich" });
 
+            // Build lookup maps for FK resolution
+            var dogLookup = new Dictionary<string, string>();
+            var dogTable = _tableService.GetTableClient("LostDogs");
+            await dogTable.CreateIfNotExistsAsync();
+            await foreach (var e in dogTable.QueryAsync<TableEntity>(select: new[] { "RowKey", "DisplayName" }))
+                dogLookup[e.RowKey] = e.GetString("DisplayName") ?? e.RowKey;
+
+            var catLookup = new Dictionary<string, string>();
+            var catTable = _tableService.GetTableClient("Categories");
+            await catTable.CreateIfNotExistsAsync();
+            await foreach (var e in catTable.QueryAsync<TableEntity>(select: new[] { "RowKey", "DisplayName" }))
+                catLookup[e.RowKey] = e.GetString("DisplayName") ?? e.RowKey;
+
             var tableClient = _tableService.GetTableClient("GPSRecords");
             await tableClient.CreateIfNotExistsAsync();
 
@@ -226,22 +263,25 @@ public class GPSRecordsFunction
             await foreach (var entity in tableClient.QueryAsync<TableEntity>(
                 filter: $"PartitionKey eq '{nameFilter.Replace("'", "''")}'"))
             {
-                var lostDog = entity.GetString("LostDog") ?? "";
-                if (lostDog != lostDogFilter) continue;
+                var lostDogKey = entity.GetString("LostDog") ?? "";
+                if (lostDogKey != lostDogFilter) continue;
 
+                var categoryKey = entity.GetString("Category") ?? "";
                 allRecords.Add(new
                 {
                     partitionKey = entity.PartitionKey,
                     rowKey = entity.RowKey,
                     name = entity.PartitionKey,
-                    lostDog,
+                    lostDogKey,
+                    lostDog = dogLookup.GetValueOrDefault(lostDogKey, lostDogKey),
                     latitude = GetDoubleSafe(entity, "Latitude"),
                     longitude = GetDoubleSafe(entity, "Longitude"),
                     accuracy = GetDoubleSafe(entity, "Accuracy"),
                     recordedAt = entity.GetString("RecordedAt") ?? entity.Timestamp?.ToString("o") ?? "",
                     photoUrl = entity.GetString("PhotoUrl") ?? "",
                     comment = entity.GetString("Comment") ?? "",
-                    category = entity.GetString("Category") ?? ""
+                    categoryKey,
+                    category = catLookup.GetValueOrDefault(categoryKey, categoryKey)
                 });
             }
 

@@ -31,8 +31,8 @@
         items.forEach(item => {
             const li = document.createElement('li');
             const display = item.suffix
-                ? `${esc(item.location)} <span style="color:#6e6e73;font-size:0.875rem">(${esc(item.suffix)})</span>`
-                : esc(item.location);
+                ? `${esc(item.displayName)} <span style="color:#6e6e73;font-size:0.875rem">(${esc(item.suffix)})</span>`
+                : esc(item.displayName);
             li.innerHTML = `<span class="item-name">${display}</span>`;
 
             if (item.suffix) {
@@ -40,14 +40,14 @@
                 linkBtn.className = 'btn btn-secondary btn-sm';
                 linkBtn.style.marginRight = '0.5rem';
                 linkBtn.textContent = '🔗 Link';
-                linkBtn.addEventListener('click', () => copyGuestLink(item.suffix, item.location));
+                linkBtn.addEventListener('click', () => copyGuestLink(item.suffix, item.displayName));
                 li.appendChild(linkBtn);
             }
 
             const btn = document.createElement('button');
             btn.className = 'btn btn-danger btn-sm';
             btn.textContent = 'Löschen';
-            btn.addEventListener('click', () => deleteDog(item.rowKey, item.location));
+            btn.addEventListener('click', () => deleteDog(item.rowKey, item.displayName));
             li.appendChild(btn);
             listEl.appendChild(li);
         });

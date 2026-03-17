@@ -4,9 +4,7 @@
 
     /* ── DOM refs ─────────────────────────────── */
     const userList        = document.getElementById('userList');
-    const currentUserEl   = document.getElementById('currentUser');
 
-    const changePwModal   = document.getElementById('changePwModal');
     const createUserModal = document.getElementById('createUserModal');
     const resetPwModal    = document.getElementById('resetPwModal');
     const editUserModal   = document.getElementById('editUserModal');
@@ -50,7 +48,6 @@
         if (!res) return;
         const data = await res.json();
         currentUsername = data.username || '';
-        currentUserEl.textContent = currentUsername || '—';
     }
 
     /* ── Load user list ──────────────────────── */
@@ -91,39 +88,6 @@
     }
 
     function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
-
-    /* ── Change own password ──────────────────── */
-    document.getElementById('changePwBtn').addEventListener('click', () => {
-        document.getElementById('oldPw').value = '';
-        document.getElementById('newPw').value = '';
-        document.getElementById('newPw2').value = '';
-        hideError('changePwError');
-        openModal(changePwModal);
-    });
-    document.getElementById('changePwCancel').addEventListener('click', () => closeModal(changePwModal));
-    document.getElementById('changePwSave').addEventListener('click', async () => {
-        const oldPw = document.getElementById('oldPw').value.trim();
-        const newPw = document.getElementById('newPw').value.trim();
-        const newPw2 = document.getElementById('newPw2').value.trim();
-
-        if (!oldPw || !newPw) { showError('changePwError', 'Bitte alle Felder ausfüllen.'); return; }
-        if (newPw.length < 8) { showError('changePwError', 'Mindestens 8 Zeichen.'); return; }
-        if (newPw !== newPw2) { showError('changePwError', 'Neue Kennwörter stimmen nicht überein.'); return; }
-
-        const res = await apiCall(`${API}/auth/change-password`, {
-            method: 'POST',
-            headers: { ...FT_AUTH.adminHeaders(), 'Content-Type': 'application/json' },
-            body: JSON.stringify({ oldPassword: oldPw, newPassword: newPw })
-        });
-        if (!res) return;
-        if (res.ok) {
-            closeModal(changePwModal);
-            showToast('Kennwort geändert');
-        } else {
-            const data = await res.json().catch(() => ({}));
-            showError('changePwError', data.error || 'Fehler beim Ändern.');
-        }
-    });
 
     /* ── Create user ─────────────────────────── */
     document.getElementById('addUserBtn').addEventListener('click', () => {

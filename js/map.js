@@ -202,7 +202,7 @@
             while (filterDogEl.options.length > 1) filterDogEl.remove(1);
             currentDogs.forEach(d => {
                 const opt = document.createElement('option');
-                opt.value = d; opt.textContent = d;
+                opt.value = d.rowKey || d; opt.textContent = d.displayName || d;
                 filterDogEl.appendChild(opt);
             });
             filterDogEl.value = currentVal;
@@ -213,7 +213,7 @@
             while (filterNameEl.options.length > 1) filterNameEl.remove(1);
             currentNames.forEach(n => {
                 const opt = document.createElement('option');
-                opt.value = n; opt.textContent = n;
+                opt.value = n.rowKey || n; opt.textContent = n.displayName || n;
                 filterNameEl.appendChild(opt);
             });
             filterNameEl.value = currentNameVal;
@@ -224,19 +224,21 @@
                 const currentCatSel = getSelectedCategories();
                 catDropdownEl.innerHTML = '';
                 currentCats.forEach(c => {
+                    const key = c.rowKey || c;
+                    const display = c.displayName || c;
                     const label = document.createElement('label');
                     label.className = 'multi-select-item';
                     const cb = document.createElement('input');
                     cb.type = 'checkbox';
-                    cb.value = c;
+                    cb.value = key;
                     if (currentCatSel.length > 0) {
-                        if (currentCatSel.includes(c)) cb.checked = true;
-                    } else if (filterCategory && filterCategory.split(',').includes(c)) {
+                        if (currentCatSel.includes(key)) cb.checked = true;
+                    } else if (filterCategory && filterCategory.split(',').includes(key)) {
                         cb.checked = true;
                     }
                     cb.addEventListener('change', () => { updateCatBtnText(); onFilterChange(); });
                     label.appendChild(cb);
-                    label.appendChild(document.createTextNode(' ' + c));
+                    label.appendChild(document.createTextNode(' ' + display));
                     catDropdownEl.appendChild(label);
                 });
                 updateCatBtnText();
