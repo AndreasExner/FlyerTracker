@@ -172,7 +172,7 @@
                     if (catRes.ok) {
                         const cats = await catRes.json();
                         cachedCategorySymbols = {};
-                        cats.forEach(c => { if (c.svgSymbol) cachedCategorySymbols[c.name] = c.svgSymbol; });
+                        cats.forEach(c => { if (c.svgSymbol) cachedCategorySymbols[c.displayName] = c.svgSymbol; });
                     }
                 } catch { /* use defaults */ }
             }
