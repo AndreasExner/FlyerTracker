@@ -41,7 +41,7 @@ public class GPSRecordsFunction
             var ip = req.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
             if (!_rateLimit.Read.IsAllowed(ip))
                 return new ObjectResult(new { error = "Zu viele Anfragen. Bitte warten." }) { StatusCode = 429 };
-            if (await _adminAuth.ValidateTokenWithRole(req, 2) == 0)
+            if (await _adminAuth.ValidateTokenWithRole(req, 1) == 0)
                 return AdminAuth.Forbidden();
 
             // Build lookup maps for FK resolution
@@ -166,7 +166,7 @@ public class GPSRecordsFunction
             var ip = req.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
             if (!_rateLimit.Write.IsAllowed(ip))
                 return new ObjectResult(new { error = "Zu viele Anfragen. Bitte warten." }) { StatusCode = 429 };
-            if (await _adminAuth.ValidateTokenWithRole(req, 2) == 0)
+            if (await _adminAuth.ValidateTokenWithRole(req, 1) == 0)
                 return AdminAuth.Forbidden();
 
             var body = await JsonSerializer.DeserializeAsync<List<DeleteKey>>(req.Body,
@@ -412,7 +412,7 @@ public class GPSRecordsFunction
             var ip = req.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
             if (!_rateLimit.Write.IsAllowed(ip))
                 return new ObjectResult(new { error = "Zu viele Anfragen. Bitte warten." }) { StatusCode = 429 };
-            if (await _adminAuth.ValidateTokenWithRole(req, 2) == 0)
+            if (await _adminAuth.ValidateTokenWithRole(req, 1) == 0)
                 return AdminAuth.Forbidden();
 
             var body = await JsonSerializer.DeserializeAsync<UpdateRequest>(req.Body,
