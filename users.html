@@ -68,6 +68,7 @@
             <input type="password" id="newUserPw" placeholder="Kennwort (min. 8 Zeichen)" autocomplete="new-password">
             <select id="newUserRole" style="width:100%;padding:0.75rem 1rem;font-size:1rem;border:1px solid #d2d2d7;border-radius:10px;outline:none;margin-bottom:0.75rem;">
                 <option value="User" selected>User</option>
+                <option value="PowerUser">PowerUser</option>
                 <option value="Manager">Manager</option>
                 <option value="Administrator">Administrator</option>
             </select>
@@ -99,6 +100,7 @@
             <input type="text" id="editDisplayName" placeholder="Anzeigename" autocomplete="off">
             <select id="editUserRole" style="width:100%;padding:0.75rem 1rem;font-size:1rem;border:1px solid #d2d2d7;border-radius:10px;outline:none;margin-bottom:0.75rem;">
                 <option value="User">User</option>
+                <option value="PowerUser">PowerUser</option>
                 <option value="Manager">Manager</option>
                 <option value="Administrator">Administrator</option>
             </select>
@@ -112,7 +114,7 @@
 
     <script src="js/auth.js"></script>
     <script>
-        FT_AUTH.requireRole(2);
+        FT_AUTH.requireRole(3);
     </script>
     <script src="js/users.js"></script>
     <script src="js/theme.js"></script>

@@ -33,7 +33,7 @@ public class UsersFunction
             var ip = req.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
             if (!_rateLimit.Read.IsAllowed(ip))
                 return new ObjectResult(new { error = "Zu viele Anfragen. Bitte warten." }) { StatusCode = 429 };
-            if (await _auth.ValidateTokenWithRole(req, 2) == 0)
+            if (await _auth.ValidateTokenWithRole(req, 3) == 0)
                 return AdminAuth.Forbidden();
 
             var users = await _auth.GetUsersAsync();
@@ -57,7 +57,7 @@ public class UsersFunction
             var ip = req.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
             if (!_rateLimit.Write.IsAllowed(ip))
                 return new ObjectResult(new { error = "Zu viele Anfragen. Bitte warten." }) { StatusCode = 429 };
-            var callerLevel = await _auth.ValidateTokenWithRole(req, 2);
+            var callerLevel = await _auth.ValidateTokenWithRole(req, 3);
             if (callerLevel == 0)
                 return AdminAuth.Forbidden();
 
@@ -72,7 +72,7 @@ public class UsersFunction
                 return new BadRequestObjectResult(new { error = "Kennwort muss mindestens 8 Zeichen haben" });
 
             // Manager can only assign role "User"
-            var role = callerLevel >= 3 ? (body.Role ?? "User") : "User";
+            var role = callerLevel >= 4 ? (body.Role ?? "User") : "User";
             var ok = await _auth.CreateUserAsync(body.Username, body.DisplayName, body.Password, role);
             if (!ok)
                 return new ConflictObjectResult(new { error = $"Benutzer '{body.Username}' existiert bereits" });
@@ -99,7 +99,7 @@ public class UsersFunction
             var ip = req.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
             if (!_rateLimit.Write.IsAllowed(ip))
                 return new ObjectResult(new { error = "Zu viele Anfragen. Bitte warten." }) { StatusCode = 429 };
-            if (await _auth.ValidateTokenWithRole(req, 3) == 0)
+            if (await _auth.ValidateTokenWithRole(req, 4) == 0)
                 return AdminAuth.Forbidden();
 
             var body = await JsonSerializer.DeserializeAsync<ResetPasswordRequest>(req.Body,
@@ -137,7 +137,7 @@ public class UsersFunction
             var ip = req.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
             if (!_rateLimit.Write.IsAllowed(ip))
                 return new ObjectResult(new { error = "Zu viele Anfragen. Bitte warten." }) { StatusCode = 429 };
-            if (await _auth.ValidateTokenWithRole(req, 3) == 0)
+            if (await _auth.ValidateTokenWithRole(req, 4) == 0)
                 return AdminAuth.Forbidden();
 
             // Prevent self-deletion
@@ -190,7 +190,7 @@ public class UsersFunction
             var ip = req.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
             if (!_rateLimit.Write.IsAllowed(ip))
                 return new ObjectResult(new { error = "Zu viele Anfragen. Bitte warten." }) { StatusCode = 429 };
-            if (await _auth.ValidateTokenWithRole(req, 3) == 0)
+            if (await _auth.ValidateTokenWithRole(req, 4) == 0)
                 return AdminAuth.Forbidden();
 
             var body = await JsonSerializer.DeserializeAsync<UpdateUserRequest>(req.Body,

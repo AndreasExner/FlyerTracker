@@ -70,8 +70,9 @@ const FT_AUTH = (function () {
     /** Get numeric role level: User=1, Manager=2, Administrator=3 */
     function getRoleLevel() {
         const r = getRole();
-        if (r === 'Administrator') return 3;
-        if (r === 'Manager') return 2;
+        if (r === 'Administrator') return 4;
+        if (r === 'Manager') return 3;
+        if (r === 'PowerUser') return 2;
         return 1;
     }
 

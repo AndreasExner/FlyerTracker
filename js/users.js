@@ -65,7 +65,7 @@
             return;
         }
         const myLevel = (typeof FT_AUTH !== 'undefined') ? FT_AUTH.getRoleLevel() : 1;
-        const isAdmin = myLevel >= 3;
+        const isAdmin = myLevel >= 4;
         userList.innerHTML = users.map(u => {
             const isSelf = u.username.toLowerCase() === currentUsername.toLowerCase();
             const created = u.createdAt ? new Date(u.createdAt).toLocaleDateString('de-DE') : '—';
@@ -96,7 +96,7 @@
         document.getElementById('newUserPw').value = '';
         // Manager: hide role dropdown (can only assign "User")
         const roleSelect = document.getElementById('newUserRole');
-        if (FT_AUTH.getRoleLevel() < 3) {
+        if (FT_AUTH.getRoleLevel() < 4) {
             roleSelect.value = 'User';
             roleSelect.style.display = 'none';
         } else {

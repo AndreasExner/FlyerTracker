@@ -17,12 +17,13 @@ public class AdminAuth
     private const string TableName = "Users";
     private const string Partition = "users";
 
-    public static readonly string[] ValidRoles = { "User", "Manager", "Administrator" };
+    public static readonly string[] ValidRoles = { "User", "PowerUser", "Manager", "Administrator" };
 
     public static int GetRoleLevel(string? role) => role switch
     {
-        "Administrator" => 3,
-        "Manager" => 2,
+        "Administrator" => 4,
+        "Manager" => 3,
+        "PowerUser" => 2,
         "User" => 1,
         _ => 0
     };

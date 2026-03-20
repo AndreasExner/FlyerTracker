@@ -112,7 +112,7 @@ public class LostDogsFunction
             var ip = req.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
             if (!_rateLimit.Read.IsAllowed(ip))
                 return new ObjectResult(new { error = "Zu viele Anfragen. Bitte warten." }) { StatusCode = 429 };
-            if (await _adminAuth.ValidateTokenWithRole(req, 2) == 0)
+            if (await _adminAuth.ValidateTokenWithRole(req, 3) == 0)
                 return AdminAuth.Forbidden();
             var tableClient = _tableService.GetTableClient("LostDogs");
             await tableClient.CreateIfNotExistsAsync();
@@ -151,7 +151,7 @@ public class LostDogsFunction
             var ip = req.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
             if (!_rateLimit.Write.IsAllowed(ip))
                 return new ObjectResult(new { error = "Zu viele Anfragen. Bitte warten." }) { StatusCode = 429 };
-            if (await _adminAuth.ValidateTokenWithRole(req, 2) == 0)
+            if (await _adminAuth.ValidateTokenWithRole(req, 3) == 0)
                 return AdminAuth.Forbidden();
 
             var body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body);
@@ -202,7 +202,7 @@ public class LostDogsFunction
             var ip = req.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
             if (!_rateLimit.Write.IsAllowed(ip))
                 return new ObjectResult(new { error = "Zu viele Anfragen. Bitte warten." }) { StatusCode = 429 };
-            if (await _adminAuth.ValidateTokenWithRole(req, 2) == 0)
+            if (await _adminAuth.ValidateTokenWithRole(req, 3) == 0)
                 return AdminAuth.Forbidden();
 
             var body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body);
@@ -242,7 +242,7 @@ public class LostDogsFunction
             var ip = req.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
             if (!_rateLimit.Write.IsAllowed(ip))
                 return new ObjectResult(new { error = "Zu viele Anfragen. Bitte warten." }) { StatusCode = 429 };
-            if (await _adminAuth.ValidateTokenWithRole(req, 2) == 0)
+            if (await _adminAuth.ValidateTokenWithRole(req, 3) == 0)
                 return AdminAuth.Forbidden();
             var tableClient = _tableService.GetTableClient("LostDogs");
             await tableClient.DeleteEntityAsync("lostdogs", rowKey);
