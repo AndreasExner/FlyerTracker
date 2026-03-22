@@ -55,6 +55,7 @@ public class EquipmentFunction
                     rowKey = entity.RowKey,
                     displayName = entity.GetString("DisplayName") ?? "",
                     comment = entity.GetString("Comment") ?? "",
+                    userName = entity.GetString("UserName") ?? "",
                     location = entity.GetString("Location") ?? "",
                     latitude = entity.GetDouble("Latitude"),
                     longitude = entity.GetDouble("Longitude")
@@ -106,6 +107,8 @@ public class EquipmentFunction
 
             if (!string.IsNullOrWhiteSpace(body.Comment))
                 entity["Comment"] = body.Comment.Trim();
+            if (!string.IsNullOrWhiteSpace(body.UserName))
+                entity["UserName"] = body.UserName.Trim();
             if (!string.IsNullOrWhiteSpace(body.Location))
                 entity["Location"] = body.Location.Trim();
             if (body.Latitude.HasValue)
@@ -154,6 +157,8 @@ public class EquipmentFunction
                 entity["DisplayName"] = body.DisplayName.Trim();
             if (body.Comment is not null)
                 entity["Comment"] = body.Comment.Trim();
+            if (body.UserName is not null)
+                entity["UserName"] = body.UserName.Trim();
             if (body.Location is not null)
                 entity["Location"] = body.Location.Trim();
             if (body.Latitude.HasValue)
@@ -213,6 +218,7 @@ public class EquipmentFunction
     {
         public string? DisplayName { get; init; }
         public string? Comment { get; init; }
+        public string? UserName { get; init; }
         public string? Location { get; init; }
         public double? Latitude { get; init; }
         public double? Longitude { get; init; }

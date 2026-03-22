@@ -35,13 +35,15 @@
         .modal input:focus { border-color: #0071e3; box-shadow: 0 0 0 3px rgba(0,113,227,.15); }
         .modal-buttons { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.5rem; }
         .modal-error { color: #ff3b30; font-size: 0.875rem; margin-top: 0.25rem; display: none; }
+        .loc-mode-btn { background: #e8e8ed; color: #1d1d1f; border: none; flex: 1; }
+        .loc-mode-btn.active { background: #0071e3; color: #fff; }
     </style>
 </head>
 <body>
     <div class="site-banner">Hundesuchhilfe-Ostfriesland e.V.</div>
     <div class="admin-container">
         <div class="admin-header">
-            <h1>📦 Equipment</h1>
+            <h1>� Equipment</h1>
             <a href="index.html" class="btn-back">Zurück</a>
         </div>
 
@@ -73,12 +75,42 @@
             <h3>Equipment bearbeiten</h3>
             <input type="text" id="editEqName" placeholder="Bezeichnung" autocomplete="off">
             <input type="text" id="editEqComment" placeholder="Kommentar (optional)" autocomplete="off" maxlength="100">
+
+            <!-- Location mode selector -->
             <div style="display:flex;gap:0.5rem;margin-bottom:0.75rem;">
-                <input type="text" id="editEqLocation" placeholder="Ort (optional)" autocomplete="off" style="flex:1;">
-                <button type="button" class="btn btn-secondary btn-sm" id="editEqLocationSearch">🔍</button>
+                <button type="button" class="btn btn-sm loc-mode-btn active" data-mode="ort" id="modeOrt">Ort</button>
+                <button type="button" class="btn btn-sm loc-mode-btn" data-mode="mitglied" id="modeMitglied">Mitglied</button>
+                <button type="button" class="btn btn-sm loc-mode-btn" data-mode="einsatz" id="modeEinsatz">Im Einsatz</button>
             </div>
+
+            <!-- Mode: Ort (default) -->
+            <div id="locModeOrt">
+                <div style="display:flex;gap:0.5rem;margin-bottom:0.75rem;">
+                    <input type="text" id="editEqLocation" placeholder="Ort (optional)" autocomplete="off" style="flex:1;margin-bottom:0;">
+                    <button type="button" class="btn btn-secondary btn-sm" id="editEqLocationSearch">🔍</button>
+                </div>
+            </div>
+
+            <!-- Mode: Mitglied -->
+            <div id="locModeMitglied" style="display:none;">
+                <select id="editEqMemberSelect" style="width:100%;padding:0.75rem 1rem;font-size:1rem;border:1px solid #d2d2d7;border-radius:10px;margin-bottom:0.75rem;outline:none;">
+                    <option value="">Mitglied wählen…</option>
+                </select>
+            </div>
+
+            <!-- Mode: Im Einsatz -->
+            <div id="locModeEinsatz" style="display:none;">
+                <select id="editEqEinsatzSelect" style="width:100%;padding:0.75rem 1rem;font-size:1rem;border:1px solid #d2d2d7;border-radius:10px;margin-bottom:0.75rem;outline:none;">
+                    <option value="">Einsatzort wählen…</option>
+                </select>
+            </div>
+
+            <!-- Resolved location display -->
+            <div id="editEqResolvedLoc" style="font-size:0.8125rem;color:#6e6e73;margin-bottom:0.75rem;display:none;"></div>
+
             <input type="hidden" id="editEqLat">
             <input type="hidden" id="editEqLng">
+            <input type="hidden" id="editEqUserName">
             <p class="modal-error" id="editEqError"></p>
             <div class="modal-buttons">
                 <button class="btn btn-secondary btn-sm" id="editEqCancel">Abbrechen</button>
