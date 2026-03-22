@@ -3,6 +3,7 @@
     'use strict';
 
     const API = FT_AUTH.getApiBase();
+    const roleLevel = FT_AUTH.getRoleLevel();
     const listEl = document.getElementById('eqList');
     const createModal = document.getElementById('createEqModal');
     const editModal = document.getElementById('editEqModal');
@@ -48,20 +49,24 @@
                     <small>${info}</small>
                 </div>
                 <div class="eq-actions">
-                    <button class="btn btn-secondary btn-sm" onclick="EQ.edit('${esc(item.rowKey)}','${esc(item.displayName)}','${esc(item.comment || '')}','${esc(item.userName || '')}','${esc(item.location || '')}',${item.latitude || 0},${item.longitude || 0})">Bearbeiten</button>
-                    <button class="btn btn-sm" style="background:#ff3b30;color:#fff" onclick="EQ.del('${esc(item.rowKey)}','${esc(item.displayName)}')">Löschen</button>
+                    <button class="btn btn-secondary btn-sm" onclick="EQ.edit('${esc(item.rowKey)}','${esc(item.displayName)}','${esc(item.comment || '')}','${esc(item.userName || '')}','${esc(item.location || '')}',${item.latitude || 0},${item.longitude || 0})">${roleLevel >= 3 ? 'Bearbeiten' : 'Standort'}</button>
+                    ${roleLevel >= 3 ? `<button class="btn btn-sm" style="background:#ff3b30;color:#fff" onclick="EQ.del('${esc(item.rowKey)}','${esc(item.displayName)}')">L\u00f6schen</button>` : ''}
                 </div>
             </div>`;
         }).join('');
     }
 
     /* ── Create ───────────────────────────────── */
-    document.getElementById('addBtn').addEventListener('click', () => {
-        document.getElementById('newEqName').value = '';
-        document.getElementById('newEqComment').value = '';
-        hideError('createEqError');
-        openModal(createModal);
-    });
+    if (roleLevel >= 3) {
+        document.getElementById('addBtn').addEventListener('click', () => {
+            document.getElementById('newEqName').value = '';
+            document.getElementById('newEqComment').value = '';
+            hideError('createEqError');
+            openModal(createModal);
+        });
+    } else {
+        document.getElementById('addBtn').style.display = 'none';
+    }
     document.getElementById('createEqCancel').addEventListener('click', () => closeModal(createModal));
     document.getElementById('createEqSave').addEventListener('click', async () => {
         const displayName = document.getElementById('newEqName').value.trim();
@@ -213,6 +218,9 @@
         document.getElementById('editEqLng').value = lng || '';
         document.getElementById('editEqUserName').value = userName || '';
         hideError('editEqError');
+        // Disable name/comment for PowerUser
+        document.getElementById('editEqName').disabled = roleLevel < 3;
+        document.getElementById('editEqComment').disabled = roleLevel < 3;
         // Reset to "Ort" mode, clear caches
         cachedUsers = null;
         cachedEinsatzRecords = null;

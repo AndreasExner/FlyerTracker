@@ -40,13 +40,8 @@ public class EquipmentFunction
             var ip = req.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
             if (!_rateLimit.Read.IsAllowed(ip))
                 return new ObjectResult(new { error = "Zu viele Anfragen. Bitte warten." }) { StatusCode = 429 };
-            if (await _adminAuth.ValidateTokenWithRole(req, 3) == 0)
+            if (await _adminAuth.ValidateTokenWithRole(req, 2) == 0)
                 return AdminAuth.Forbidden();
-
-            var table = _tableService.GetTableClient(TableName);
-            await table.CreateIfNotExistsAsync();
-
-            var items = new List<object>();
             await foreach (var entity in table.QueryAsync<TableEntity>(
                 filter: $"PartitionKey eq '{PK}'"))
             {
@@ -140,7 +135,8 @@ public class EquipmentFunction
             var ip = req.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
             if (!_rateLimit.Write.IsAllowed(ip))
                 return new ObjectResult(new { error = "Zu viele Anfragen. Bitte warten." }) { StatusCode = 429 };
-            if (await _adminAuth.ValidateTokenWithRole(req, 3) == 0)
+            var callerLevel = await _adminAuth.ValidateTokenWithRole(req, 2);
+            if (callerLevel == 0)
                 return AdminAuth.Forbidden();
 
             var body = await JsonSerializer.DeserializeAsync<EquipmentRequest>(req.Body,
@@ -153,10 +149,15 @@ public class EquipmentFunction
             var response = await table.GetEntityAsync<TableEntity>(PK, rowKey);
             var entity = response.Value;
 
-            if (!string.IsNullOrWhiteSpace(body.DisplayName))
-                entity["DisplayName"] = body.DisplayName.Trim();
-            if (body.Comment is not null)
-                entity["Comment"] = body.Comment.Trim();
+            // Manager+ can edit all fields; PowerUser can only edit location
+            if (callerLevel >= 3)
+            {
+                if (!string.IsNullOrWhiteSpace(body.DisplayName))
+                    entity["DisplayName"] = body.DisplayName.Trim();
+                if (body.Comment is not null)
+                    entity["Comment"] = body.Comment.Trim();
+            }
+
             if (body.UserName is not null)
                 entity["UserName"] = body.UserName.Trim();
             if (body.Location is not null)
