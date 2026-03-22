@@ -187,7 +187,7 @@
         document.getElementById('editEqLocation').value = r.location;
         document.getElementById('editEqLat').value = r.latitude;
         document.getElementById('editEqLng').value = r.longitude;
-        document.getElementById('editEqUserName').value = r.location;
+        document.getElementById('editEqUserName').value = r.lostDog || '';
         resolvedLocEl.textContent = `📍 ${r.location} (${r.lostDog || '–'})`;
         resolvedLocEl.style.display = '';
     });
