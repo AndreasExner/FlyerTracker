@@ -132,6 +132,48 @@ public class GuestTokenFunction
         }
     }
 
+    /// <summary>Get nickname for a guest token.</summary>
+    [Function("GuestGetNickname")]
+    public async Task<IActionResult> GetNickname(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "guest/nickname")] HttpRequest req)
+    {
+        try
+        {
+            if (!_apiKey.IsValid(req))
+                return new ObjectResult(new { error = "Ungültiger API-Key" }) { StatusCode = 403 };
+            var ip = req.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            if (!_rateLimit.Read.IsAllowed(ip))
+                return new ObjectResult(new { error = "Zu viele Anfragen. Bitte warten." }) { StatusCode = 429 };
+
+            var token = req.Query["token"].FirstOrDefault();
+            if (string.IsNullOrWhiteSpace(token))
+                return new BadRequestObjectResult(new { error = "token ist erforderlich" });
+
+            var table = _tableService.GetTableClient(TableName);
+            await table.CreateIfNotExistsAsync();
+
+            await foreach (var entity in table.QueryAsync<TableEntity>(
+                filter: $"PartitionKey eq '{PK}'",
+                select: new[] { "Token", "NickName" }))
+            {
+                if (entity.GetString("Token") == token.Trim())
+                {
+                    return new OkObjectResult(new
+                    {
+                        nickName = entity.GetString("NickName") ?? ""
+                    });
+                }
+            }
+
+            return new OkObjectResult(new { nickName = "" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting guest nickname");
+            return new StatusCodeResult(500);
+        }
+    }
+
     private static string GenerateToken()
     {
         var bytes = RandomNumberGenerator.GetBytes(24);

@@ -205,10 +205,25 @@
         });
     }
 
-    function updateGreeting() {
+    async function updateGreeting() {
         const el = document.getElementById('guestGreeting');
         if (!el) return;
-        const nick = localStorage.getItem(STORAGE_KEY_NICK);
+        let nick = localStorage.getItem(STORAGE_KEY_NICK);
+        // If no local nickname but we have a token, fetch from backend
+        if (!nick && guestToken) {
+            try {
+                const res = await fetch(`${API_BASE}/guest/nickname?token=${encodeURIComponent(guestToken)}`, {
+                    headers: { 'X-API-Key': API_KEY }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.nickName) {
+                        nick = data.nickName;
+                        localStorage.setItem(STORAGE_KEY_NICK, nick);
+                    }
+                }
+            } catch { /* continue without nickname */ }
+        }
         el.textContent = nick ? `Hallo, ${nick}!` : 'Hallo, Gast-Helfer*in!';
     }
 
