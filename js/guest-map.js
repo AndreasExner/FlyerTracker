@@ -11,38 +11,32 @@
     const toastEl = document.getElementById('toast');
     let toastTimeout = null;
 
-    // Read name + lostDog from URL params
+    // Read lostDog + token from URL params
     const urlParams = new URLSearchParams(window.location.search);
-    const filterName = urlParams.get('name') || '';
     const filterDog = urlParams.get('lostDog') || '';
+    const guestToken = urlParams.get('token') || localStorage.getItem('lostdogtracer_guest_token') || '';
+    const ownerFilterEl = document.getElementById('ownerFilter');
+    let guestCategoryKey = '';
 
-    if (!filterName || !filterDog) {
-        filterInfoEl.textContent = '⚠️ Kein Name/Hund ausgewählt';
+    if (!filterDog) {
+        filterInfoEl.textContent = '⚠️ Kein Hund ausgewählt';
         markerCountEl.textContent = '—';
-        document.getElementById('map').innerHTML = '<p style="padding:2rem;text-align:center;color:#ff3b30">Bitte zuerst Name und Hund auf der Startseite auswählen.</p>';
+        document.getElementById('map').innerHTML = '<p style="padding:2rem;text-align:center;color:#ff3b30">Bitte zuerst einen Hund auf der Startseite auswählen.</p>';
         return;
     }
 
-    // Resolve display names for header
+    // Resolve display name for header
     (async function resolveFilterInfo() {
-        let nameDisplay = filterName;
         let dogDisplay = filterDog;
         try {
-            const [verifyRes, dogsRes] = await Promise.all([
-                fetch(`${API_BASE}/auth/verify`, { headers: FT_AUTH.adminHeaders() }),
-                fetch(`${API_BASE}/lost-dogs`, { headers: FT_AUTH.publicHeaders() })
-            ]);
-            if (verifyRes.ok) {
-                const v = await verifyRes.json();
-                if (v.displayName) nameDisplay = v.displayName;
-            }
+            const dogsRes = await fetch(`${API_BASE}/lost-dogs`, { headers: FT_AUTH.publicHeaders() });
             if (dogsRes.ok) {
                 const dogs = await dogsRes.json();
                 const match = dogs.find(d => d.rowKey === filterDog);
                 if (match) dogDisplay = match.displayName;
             }
         } catch {}
-        filterInfoEl.textContent = `${nameDisplay} / ${dogDisplay}`;
+        filterInfoEl.textContent = dogDisplay;
     })();
 
     // ── Color palette ────────────────────────────────────────────
@@ -151,8 +145,8 @@
 
             const params = new URLSearchParams();
             params.set('pageSize', 'all');
-            params.set('name', filterName);
             params.set('lostDog', filterDog);
+            if (guestToken) params.set('guestToken', guestToken);
 
             const res = await fetch(`${API_BASE}/my-records?${params}`, {
                 headers: FT_AUTH.publicHeaders()
@@ -160,7 +154,13 @@
             if (!res.ok) throw new Error();
 
             const data = await res.json();
-            const records = data.records || [];
+            let allRecords = data.records || [];
+            // Filter by guest category
+            if (guestCategoryKey) {
+                allRecords = allRecords.filter(r => r.categoryKey === guestCategoryKey);
+            }
+            const showMine = ownerFilterEl.value === 'mine';
+            const records = showMine ? allRecords.filter(r => r.isOwner) : allRecords;
 
             markerCountEl.textContent = `${records.length} Standort${records.length !== 1 ? 'e' : ''}`;
 
@@ -171,9 +171,14 @@
 
             const dogRecords = {};
             const bounds = [];
+            const guestNick = localStorage.getItem('lostdogtracer_guest_nick');
 
             records.forEach(r => {
                 if (!r.latitude || !r.longitude) return;
+                // Resolve GUEST display name
+                if (r.partitionKey === 'GUEST') {
+                    r.name = r.isOwner && guestNick ? `Gast: ${guestNick}` : 'Gast-Helfer*in';
+                }
 
                 const color = getDogColor(r.lostDog);
 
@@ -194,7 +199,9 @@
                 const categoryHtml = r.category ? `<br>🏷️ ${escHtml(r.category)}` : '';
                 const commentHtml = r.comment ? `<br>💬 ${escHtml(r.comment)}` : '';
 
-                const deleteBtnHtml = `<div style="margin-top:6px;"><button class="popup-delete-btn" data-pk="${escHtml(r.partitionKey)}" data-rk="${escHtml(r.rowKey)}">Löschen</button></div>`;
+                const deleteBtnHtml = r.isOwner
+                    ? `<div style="margin-top:6px;"><button class="popup-delete-btn" data-pk="${escHtml(r.partitionKey)}" data-rk="${escHtml(r.rowKey)}">L\u00f6schen</button></div>`
+                    : '';
 
                 marker.bindPopup(
                     `<strong>${escHtml(r.name)}</strong><br>` +
@@ -283,8 +290,21 @@
     }
 
     // ── Start ────────────────────────────────────────────────────
-    loadAndDisplay();
-
+    (async function () {
+        try {
+            const cfg = window.FT_CONFIG || await fetch(`${API_BASE}/config`, { headers: FT_AUTH.publicHeaders() }).then(r => r.ok ? r.json() : null);
+            guestCategoryKey = cfg?.guestCategoryRowKey || '';
+        } catch { /* continue without filter */ }
+        loadAndDisplay();
+    })();
+    ownerFilterEl.addEventListener('change', () => {
+        clusterGroup.clearLayers();
+        routesLayer.clearLayers();
+        legendEl.innerHTML = '';
+        Object.keys(dogColorMap).forEach(k => delete dogColorMap[k]);
+        colorIdx = 0;
+        loadAndDisplay();
+    });
     // ── Delete handler (event delegation on map popups) ──────────
     document.addEventListener('click', async e => {
         const btn = e.target.closest('.popup-delete-btn');
@@ -298,7 +318,7 @@
             const res = await fetch(`${API_BASE}/my-records/delete`, {
                 method: 'POST',
                 headers: FT_AUTH.publicHeaders({ 'Content-Type': 'application/json' }),
-                body: JSON.stringify({ name: filterName, lostDog: filterDog, keys: [{ partitionKey: pk, rowKey: rk }] })
+                body: JSON.stringify({ lostDog: filterDog, guestToken: guestToken || null, keys: [{ partitionKey: pk, rowKey: rk }] })
             });
             if (!res.ok) throw new Error();
             showToast('Eintrag gelöscht');

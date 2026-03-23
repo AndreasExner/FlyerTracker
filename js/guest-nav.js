@@ -5,7 +5,7 @@
     const currentPath = location.pathname.split('/').pop() || 'guest-home.html';
     const urlParams = new URLSearchParams(location.search);
     const guestKey = urlParams.get('key') || '';
-    const paramName = urlParams.get('name') || 'HALTER*IN';
+    const guestToken = urlParams.get('token') || localStorage.getItem('lostdogtracer_guest_token') || '';
     const paramDog = urlParams.get('lostDog') || '';
 
     // Build DOM
@@ -15,7 +15,9 @@
     const drawer = document.createElement('div');
     drawer.className = 'nav-drawer';
 
-    const homeHref = guestKey ? `guest-home.html?key=${encodeURIComponent(guestKey)}` : 'guest-home.html';
+    const homeHref = guestKey
+        ? `guest-home.html?key=${encodeURIComponent(guestKey)}${guestToken ? '&token=' + encodeURIComponent(guestToken) : ''}`
+        : 'guest-home.html';
 
     const pages = [
         { href: homeHref, match: 'guest-home.html', icon: '📍', label: 'Standort erfassen' },
@@ -54,9 +56,9 @@
                         return;
                     }
                     const params = new URLSearchParams();
-                    params.set('name', paramName);
                     params.set('lostDog', dog);
                     if (guestKey) params.set('key', guestKey);
+                    if (guestToken) params.set('token', guestToken);
                     location.href = p.href + '?' + params;
                 } else {
                     location.href = p.href;

@@ -59,6 +59,24 @@ public class GPSRecordsFunction
 
             var userLookup = await _adminAuth.GetUserDisplayNameMapAsync();
 
+            // Build guest token → nickname lookup
+            var guestNickLookup = new Dictionary<string, string>();
+            var guestTable = _tableService.GetTableClient("GuestTokens");
+            try
+            {
+                await guestTable.CreateIfNotExistsAsync();
+                await foreach (var e in guestTable.QueryAsync<TableEntity>(
+                    filter: "PartitionKey eq 'guest'",
+                    select: new[] { "Token", "NickName" }))
+                {
+                    var token = e.GetString("Token") ?? "";
+                    var nick = e.GetString("NickName") ?? "";
+                    if (!string.IsNullOrEmpty(token) && !string.IsNullOrEmpty(nick))
+                        guestNickLookup[token] = nick;
+                }
+            }
+            catch { /* table may not exist yet */ }
+
             var tableClient = _tableService.GetTableClient("GPSRecords");
             await tableClient.CreateIfNotExistsAsync();
 
@@ -96,12 +114,26 @@ public class GPSRecordsFunction
                 if (!string.IsNullOrEmpty(nameKey)) allNameKeys.Add(nameKey);
                 if (!string.IsNullOrEmpty(categoryKey)) allCategoryKeys.Add(categoryKey);
 
+                // Resolve display name: for GUEST records use nickname from GuestToken
+                string displayName;
+                if (nameKey == "GUEST")
+                {
+                    var gToken = entity.GetString("GuestToken") ?? "";
+                    displayName = !string.IsNullOrEmpty(gToken) && guestNickLookup.TryGetValue(gToken, out var nick)
+                        ? $"Gast: {nick}"
+                        : "Gast-Helfer*in";
+                }
+                else
+                {
+                    displayName = userLookup.GetValueOrDefault(nameKey, nameKey);
+                }
+
                 allRecords.Add(new
                 {
                     partitionKey = entity.PartitionKey,
                     rowKey = entity.RowKey,
                     nameKey,
-                    name = userLookup.GetValueOrDefault(nameKey, nameKey),
+                    name = displayName,
                     lostDogKey,
                     lostDog = dogLookup.GetValueOrDefault(lostDogKey, lostDogKey),
                     latitude = GetDoubleSafe(entity, "Latitude"),
@@ -110,6 +142,7 @@ public class GPSRecordsFunction
                     recordedAt = entity.GetString("RecordedAt") ?? entity.Timestamp?.ToString("o") ?? "",
                     photoUrl = entity.GetString("PhotoUrl") ?? "",
                     comment = entity.GetString("Comment") ?? "",
+                    location = entity.GetString("Location") ?? "",
                     categoryKey,
                     category = catLookup.GetValueOrDefault(categoryKey, categoryKey)
                 });
@@ -124,7 +157,7 @@ public class GPSRecordsFunction
                 .Select(k => new { rowKey = k, displayName = dogLookup.GetValueOrDefault(k, k) })
                 .OrderBy(x => x.displayName, deComparer).ToList();
             var names = allNameKeys
-                .Select(k => new { rowKey = k, displayName = userLookup.GetValueOrDefault(k, k) })
+                .Select(k => new { rowKey = k, displayName = k == "GUEST" ? "Gast-Helfer*in" : userLookup.GetValueOrDefault(k, k) })
                 .OrderBy(x => x.displayName, deComparer).ToList();
             var categories = allCategoryKeys
                 .Select(k => new { rowKey = k, displayName = catLookup.GetValueOrDefault(k, k) })
@@ -234,9 +267,10 @@ public class GPSRecordsFunction
 
             var nameFilter = req.Query["name"].FirstOrDefault();
             var lostDogFilter = req.Query["lostDog"].FirstOrDefault();
+            var guestTokenFilter = req.Query["guestToken"].FirstOrDefault() ?? "";
 
-            if (string.IsNullOrWhiteSpace(nameFilter) || string.IsNullOrWhiteSpace(lostDogFilter))
-                return new BadRequestObjectResult(new { error = "name und lostDog sind erforderlich" });
+            if (string.IsNullOrWhiteSpace(lostDogFilter))
+                return new BadRequestObjectResult(new { error = "lostDog ist erforderlich" });
 
             // Build lookup maps for FK resolution
             var dogLookup = new Dictionary<string, string>();
@@ -259,14 +293,22 @@ public class GPSRecordsFunction
             int? pageSize = pageSizeStr == "all" ? null : int.TryParse(pageSizeStr, out var ps) ? ps : 20;
             int page = int.TryParse(pageStr, out var p) ? Math.Max(1, p) : 1;
 
+            // Build query: filter by PK if name provided, otherwise cross-partition
+            string? tableFilter = !string.IsNullOrWhiteSpace(nameFilter)
+                ? $"PartitionKey eq '{nameFilter.Replace("'", "''")}'"
+                : null;
+
             var allRecords = new List<object>();
-            await foreach (var entity in tableClient.QueryAsync<TableEntity>(
-                filter: $"PartitionKey eq '{nameFilter.Replace("'", "''")}'"))
+            await foreach (var entity in tableClient.QueryAsync<TableEntity>(filter: tableFilter))
             {
                 var lostDogKey = entity.GetString("LostDog") ?? "";
                 if (lostDogKey != lostDogFilter) continue;
 
                 var categoryKey = entity.GetString("Category") ?? "";
+                var recordToken = entity.GetString("GuestToken") ?? "";
+                var isOwner = !string.IsNullOrEmpty(guestTokenFilter)
+                    && !string.IsNullOrEmpty(recordToken)
+                    && recordToken == guestTokenFilter;
                 allRecords.Add(new
                 {
                     partitionKey = entity.PartitionKey,
@@ -281,7 +323,8 @@ public class GPSRecordsFunction
                     photoUrl = entity.GetString("PhotoUrl") ?? "",
                     comment = entity.GetString("Comment") ?? "",
                     categoryKey,
-                    category = catLookup.GetValueOrDefault(categoryKey, categoryKey)
+                    category = catLookup.GetValueOrDefault(categoryKey, categoryKey),
+                    isOwner
                 });
             }
 
@@ -324,8 +367,8 @@ public class GPSRecordsFunction
             var body = await JsonSerializer.DeserializeAsync<MyDeleteRequest>(req.Body,
                 new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-            if (body is null || string.IsNullOrWhiteSpace(body.Name) || string.IsNullOrWhiteSpace(body.LostDog))
-                return new BadRequestObjectResult(new { error = "name, lostDog und keys sind erforderlich" });
+            if (body is null || string.IsNullOrWhiteSpace(body.LostDog))
+                return new BadRequestObjectResult(new { error = "lostDog und keys sind erforderlich" });
 
             if (body.Keys is null || body.Keys.Count == 0)
                 return new BadRequestObjectResult(new { error = "Keine Einträge zum Löschen" });
@@ -336,14 +379,18 @@ public class GPSRecordsFunction
 
             foreach (var key in body.Keys)
             {
-                // Only allow deleting records that belong to this name+lostDog
-                if (key.PartitionKey != body.Name) continue;
-
                 try
                 {
                     var entity = await tableClient.GetEntityAsync<TableEntity>(key.PartitionKey, key.RowKey);
                     var entityDog = entity.Value.GetString("LostDog") ?? "";
-                    if (entityDog != body.LostDog) continue; // ownership check
+                    if (entityDog != body.LostDog) continue; // dog ownership check
+
+                    // Guest token ownership: if guestToken is provided, only delete records with matching token
+                    if (!string.IsNullOrEmpty(body.GuestToken))
+                    {
+                        var recordToken = entity.Value.GetString("GuestToken") ?? "";
+                        if (recordToken != body.GuestToken) continue;
+                    }
 
                     var photoUrl = entity.Value.GetString("PhotoUrl");
                     if (!string.IsNullOrEmpty(photoUrl))
@@ -379,6 +426,7 @@ public class GPSRecordsFunction
     {
         public string Name { get; init; } = "";
         public string LostDog { get; init; } = "";
+        public string? GuestToken { get; init; }
         public List<DeleteKey> Keys { get; init; } = new();
     }
 
@@ -389,6 +437,7 @@ public class GPSRecordsFunction
         public string? LostDog { get; init; }
         public string? Category { get; init; }
         public string? Comment { get; init; }
+        public string? Location { get; init; }
         public string? RecordedAt { get; init; }
         public bool DeletePhoto { get; init; }
         public double? Latitude { get; init; }
@@ -441,6 +490,8 @@ public class GPSRecordsFunction
                         entity["Category"] = body.Category;
                     if (body.Comment is not null) // allow empty string to clear
                         entity["Comment"] = body.Comment.Length > 40 ? body.Comment[..40] : body.Comment;
+                    if (body.Location is not null)
+                        entity["Location"] = body.Location;
                     if (!string.IsNullOrEmpty(body.RecordedAt))
                         entity["RecordedAt"] = body.RecordedAt;
                     if (body.Latitude.HasValue)

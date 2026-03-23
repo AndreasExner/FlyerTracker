@@ -14,48 +14,51 @@
     const toastEl = document.getElementById('toast');
     let toastTimeout = null;
 
-    // Read name + lostDog from URL params
+    // Read lostDog + token from URL params
     const urlParams = new URLSearchParams(window.location.search);
-    const filterName = urlParams.get('name') || '';
     const filterDog = urlParams.get('lostDog') || '';
+    const guestToken = urlParams.get('token') || localStorage.getItem('lostdogtracer_guest_token') || '';
+    let guestCategoryKey = '';
 
     let currentPage = 1;
     let data = { records: [], totalCount: 0, page: 1, pageSize: 20, totalPages: 1 };
 
-    if (!filterName || !filterDog) {
-        filterInfoEl.textContent = '⚠️ Kein Name/Hund ausgewählt';
-        bodyEl.innerHTML = '<tr><td colspan="5" style="color:#ff3b30;text-align:center;padding:2rem">Bitte zuerst Name und Hund auf der Startseite auswählen.</td></tr>';
+    if (!filterDog) {
+        filterInfoEl.textContent = '⚠️ Kein Hund ausgewählt';
+        bodyEl.innerHTML = '<tr><td colspan="5" style="color:#ff3b30;text-align:center;padding:2rem">Bitte zuerst einen Hund auf der Startseite auswählen.</td></tr>';
         sortFieldEl.disabled = true;
         pageSizeEl.disabled = true;
     } else {
         resolveFilterInfo();
+        loadGuestCategoryThenInit();
+    }
+
+    async function loadGuestCategoryThenInit() {
+        try {
+            const cfg = window.FT_CONFIG || await fetch(`${API_BASE}/config`, { headers: FT_AUTH.publicHeaders() }).then(r => r.ok ? r.json() : null);
+            guestCategoryKey = cfg?.guestCategoryRowKey || '';
+        } catch { /* continue without filter */ }
         init();
     }
 
     async function resolveFilterInfo() {
-        let nameDisplay = filterName;
         let dogDisplay = filterDog;
         try {
-            const [verifyRes, dogsRes] = await Promise.all([
-                fetch(`${API_BASE}/auth/verify`, { headers: FT_AUTH.adminHeaders() }),
-                fetch(`${API_BASE}/lost-dogs`, { headers: FT_AUTH.publicHeaders() })
-            ]);
-            if (verifyRes.ok) {
-                const v = await verifyRes.json();
-                if (v.displayName) nameDisplay = v.displayName;
-            }
+            const dogsRes = await fetch(`${API_BASE}/lost-dogs`, { headers: FT_AUTH.publicHeaders() });
             if (dogsRes.ok) {
                 const dogs = await dogsRes.json();
                 const match = dogs.find(d => d.rowKey === filterDog);
                 if (match) dogDisplay = match.displayName;
             }
-        } catch { /* use raw keys as fallback */ }
-        filterInfoEl.textContent = `${nameDisplay} / ${dogDisplay}`;
+        } catch { /* use raw key as fallback */ }
+        filterInfoEl.textContent = dogDisplay;
     }
 
     function init() {
+        const ownerFilterEl = document.getElementById('ownerFilter');
         sortFieldEl.addEventListener('change', () => { sortRecords(); renderTable(); });
         pageSizeEl.addEventListener('change', () => { currentPage = 1; loadRecords(); });
+        ownerFilterEl.addEventListener('change', () => { sortRecords(); renderTable(); renderPagination(); updateDeleteButton(); });
         selectAllEl.addEventListener('change', () => {
             document.querySelectorAll('.row-cb').forEach(cb => { cb.checked = selectAllEl.checked; });
             updateDeleteButton();
@@ -74,8 +77,8 @@
         const params = new URLSearchParams();
         params.set('pageSize', ps);
         params.set('page', currentPage);
-        params.set('name', filterName);
         params.set('lostDog', filterDog);
+        if (guestToken) params.set('guestToken', guestToken);
 
         try {
             const res = await fetch(`${API_BASE}/my-records?${params}`, {
@@ -83,6 +86,11 @@
             });
             if (!res.ok) throw new Error();
             data = await res.json();
+            // Filter by guest category
+            if (guestCategoryKey) {
+                data.records = data.records.filter(r => r.categoryKey === guestCategoryKey);
+                data.totalCount = data.records.length;
+            }
             sortRecords();
             renderTable();
             renderPagination();
@@ -93,22 +101,31 @@
     }
 
     // ── Render table ─────────────────────────────────────────────
+    function getFilteredRecords() {
+        const showMine = document.getElementById('ownerFilter').value === 'mine';
+        return showMine ? data.records.filter(r => r.isOwner) : data.records;
+    }
+
     function renderTable() {
         bodyEl.innerHTML = '';
         selectAllEl.checked = false;
+        const filtered = getFilteredRecords();
 
-        if (data.records.length === 0) {
-            bodyEl.innerHTML = '<tr><td colspan="5" style="color:#6e6e73;text-align:center;padding:2rem">Keine Einträge</td></tr>';
+        if (filtered.length === 0) {
+            bodyEl.innerHTML = '<tr><td colspan="5" style="color:#6e6e73;text-align:center;padding:2rem">Keine Eintr\u00e4ge</td></tr>';
             return;
         }
 
-        data.records.forEach(r => {
+        filtered.forEach(r => {
             const tr = document.createElement('tr');
             const photoCell = r.photoUrl
                 ? `<td><img src="${esc(r.photoUrl)}" class="thumb" alt="Foto" onclick="document.getElementById('lightboxImg').src=this.src;document.getElementById('lightbox').classList.remove('hidden');"></td>`
                 : '<td class="no-photo">—</td>';
+            const cbCell = r.isOwner
+                ? `<td><input type="checkbox" class="row-cb" data-pk="${esc(r.partitionKey)}" data-rk="${esc(r.rowKey)}"></td>`
+                : '<td></td>';
             tr.innerHTML = `
-                <td><input type="checkbox" class="row-cb" data-pk="${esc(r.partitionKey)}" data-rk="${esc(r.rowKey)}"></td>
+                ${cbCell}
                 <td>${formatDate(r.recordedAt)}</td>
                 <td>${esc(r.category || '')}</td>
                 <td>${esc(r.comment || '')}</td>
@@ -119,7 +136,8 @@
 
     // ── Pagination ───────────────────────────────────────────────
     function renderPagination() {
-        pageInfoEl.textContent = `${data.totalCount} Einträge — Seite ${data.page} von ${data.totalPages}`;
+        const filtered = getFilteredRecords();
+        pageInfoEl.textContent = `${filtered.length} Einträge`;
         pageBtnsEl.innerHTML = '';
 
         if (data.totalPages <= 1) return;
@@ -172,7 +190,7 @@
             const res = await fetch(`${API_BASE}/my-records/delete`, {
                 method: 'POST',
                 headers: FT_AUTH.publicHeaders({ 'Content-Type': 'application/json' }),
-                body: JSON.stringify({ name: filterName, lostDog: filterDog, keys: sel })
+                body: JSON.stringify({ lostDog: filterDog, guestToken: guestToken || null, keys: sel })
             });
             if (!res.ok) throw new Error();
             const result = await res.json();

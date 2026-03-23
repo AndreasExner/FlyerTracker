@@ -24,6 +24,10 @@
         <div class="map-info">
             <span class="badge" id="filterInfo"></span>
             <span class="badge" id="markerCount">0 Standorte</span>
+            <select id="ownerFilter" title="Filter" style="padding:0.35rem 0.5rem;font-size:0.8125rem;border:1px solid #d2d2d7;border-radius:8px;outline:none;">
+                <option value="mine" selected>Meine Flyer</option>
+                <option value="all">Alle Flyer</option>
+            </select>
             <label class="toggle-badge" title="Laufroute anzeigen">
                 <input type="checkbox" id="toggleRoutes"> Routen
             </label>
@@ -43,11 +47,16 @@
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
     <script src="js/auth.js"></script>
     <script>
-        // Set back link to guest-home with key
+        // Set back link to guest-home with key + token
         (function() {
             var p = new URLSearchParams(location.search);
             var key = p.get('key');
-            if (key) document.getElementById('backLink').href = 'guest-home.html?key=' + encodeURIComponent(key);
+            var token = p.get('token');
+            if (key) {
+                var href = 'guest-home.html?key=' + encodeURIComponent(key);
+                if (token) href += '&token=' + encodeURIComponent(token);
+                document.getElementById('backLink').href = href;
+            }
         })();
     </script>
     <script src="js/svg-icons.js"></script>

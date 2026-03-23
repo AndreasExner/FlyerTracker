@@ -5,10 +5,14 @@
     const API_BASE = IS_LOCAL ? 'http://localhost:7071/api' : '/api';
     const API_KEY = IS_LOCAL ? 'lostdogtracer-dev-key-2026' : '%%PROD_API_KEY%%';
     const STORAGE_KEY_CATEGORY = 'lostdogtracer_guest_category';
+    const STORAGE_KEY_UUID = 'lostdogtracer_guest_uuid';
+    const STORAGE_KEY_TOKEN = 'lostdogtracer_guest_token';
+    const STORAGE_KEY_NICK = 'lostdogtracer_guest_nick';
 
-    // ── Read key from URL ────────────────────────────────────────
+    // ── Read key + token from URL ────────────────────────────────
     const urlParams = new URLSearchParams(window.location.search);
     const guestKey = urlParams.get('key') || '';
+    const urlToken = urlParams.get('token') || '';
 
     const dogNameEl = document.getElementById('dogName');
     const categoryEl = document.getElementById('category');
@@ -27,6 +31,7 @@
     let selectedPhotoBlob = null;
     let resolvedDogName = '';
     let resolvedDogRowKey = '';
+    let guestToken = '';
     const charCounterEl = document.getElementById('charCounter');
 
     // ── Character counter ────────────────────────────────────────
@@ -45,6 +50,10 @@
             if (!guestKey) setInvalidState('Kein Key in der URL');
             return;
         }
+
+        // ── Guest token handling ─────────────────────────────────
+        await ensureGuestToken();
+        updateGreeting();
 
         await loadGuestCategory();
         updateButtonState();
@@ -72,6 +81,150 @@
         if (editBtnEl) editBtnEl.disabled = true;
         if (mapBtnEl) mapBtnEl.disabled = true;
         if (detail) showToast(detail, true);
+    }
+
+    // ── Guest token: UUID + registration ─────────────────────────
+    function getOrCreateUuid() {
+        let uuid = localStorage.getItem(STORAGE_KEY_UUID);
+        if (!uuid) {
+            uuid = crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+                const r = Math.random() * 16 | 0;
+                return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+            });
+            localStorage.setItem(STORAGE_KEY_UUID, uuid);
+        }
+        return uuid;
+    }
+
+    async function ensureGuestToken() {
+        // 1. Token from URL → store and use
+        if (urlToken) {
+            localStorage.setItem(STORAGE_KEY_TOKEN, urlToken);
+            guestToken = urlToken;
+            return;
+        }
+
+        // 2. Token already in localStorage
+        const storedToken = localStorage.getItem(STORAGE_KEY_TOKEN);
+        if (storedToken) {
+            guestToken = storedToken;
+            // Ensure URL contains token for bookmarking
+            if (!urlToken) history.replaceState(null, '', buildPersonalLink());
+            return;
+        }
+
+        // 3. No token yet — register immediately, then show link dialog
+        const uuid = getOrCreateUuid();
+        await registerGuest(uuid);
+    }
+
+    async function registerGuest(uuid) {
+        try {
+            const res = await fetch(`${API_BASE}/guest/register`, {
+                method: 'POST',
+                headers: { 'X-API-Key': API_KEY, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ uuid, dogKey: guestKey })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                guestToken = data.token;
+                localStorage.setItem(STORAGE_KEY_TOKEN, guestToken);
+                history.replaceState(null, '', buildPersonalLink());
+                if (!data.existing) showPersonalLinkDialog(uuid);
+            }
+        } catch {
+            // Offline or error — continue without token
+        }
+    }
+
+    function buildPersonalLink() {
+        const base = location.origin + location.pathname;
+        const params = new URLSearchParams();
+        params.set('key', guestKey);
+        params.set('token', guestToken);
+        return base + '?' + params;
+    }
+
+    function showPersonalLinkDialog(uuid) {
+        const link = buildPersonalLink();
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:100;display:flex;align-items:center;justify-content:center;';
+        overlay.innerHTML = `
+            <div style="background:#fff;border-radius:14px;padding:2rem;max-width:440px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.2);max-height:90vh;overflow-y:auto;">
+                <h3 style="margin:0 0 1rem;font-size:1.125rem;">Dein persönlicher Link</h3>
+                <p style="font-size:0.8125rem;font-weight:600;color:#1d1d1f;margin:0 0 0.25rem;">Warum bekomme ich einen persönlichen Link?</p>
+                <p style="font-size:0.8125rem;color:#6e6e73;margin:0 0 0.75rem;">Du möchtest uns helfen Flyer aufzuhängen? Das ist super. Diese App hilft dir dabei, die Flyer später zu finden um sie wieder zu entfernen. Dafür ist es wichtig, dass dir die Standorte angezeigt werden, die du selbst geflyert hast.</p>
+                <p style="font-size:0.8125rem;font-weight:600;color:#1d1d1f;margin:0 0 0.25rem;">Werden von mir persönliche Daten gespeichert?</p>
+                <p style="font-size:0.8125rem;color:#6e6e73;margin:0 0 0.75rem;">Nein. Der Link enthält einen zufällig generierten Schlüssel, der nur mit dem Standort des Flyers verknüpft ist. Du musst – und sollst – keine persönlichen Daten in der App eingeben. Dein „Spitzname" kann frei erfunden sein.</p>
+                <p style="font-size:0.8125rem;font-weight:600;color:#1d1d1f;margin:0 0 0.25rem;">Was mache ich mit dem Link?</p>
+                <p style="font-size:0.8125rem;color:#6e6e73;margin:0 0 1rem;">Teile ihn dir als Mail oder WhatsApp, oder speichere ihn als Favorit. Gib ihn bitte nicht an andere weiter.</p>
+                <input type="text" id="guestNickname" placeholder="Spitzname (optional)" autocomplete="off" maxlength="30" style="width:100%;padding:0.75rem 1rem;font-size:1rem;border:1px solid #d2d2d7;border-radius:10px;outline:none;margin-bottom:0.75rem;">
+                <input type="text" readonly value="${link.replace(/"/g, '&quot;')}" id="guestLinkInput" style="width:100%;padding:0.75rem 1rem;font-size:0.8125rem;border:1px solid #d2d2d7;border-radius:10px;outline:none;margin-bottom:0.75rem;background:#f5f5f7;">
+                <div style="display:flex;gap:0.5rem;justify-content:flex-end;flex-wrap:wrap;">
+                    ${navigator.share ? '<button class="btn btn-secondary btn-sm" id="guestLinkShare" style="padding:0.5rem 1rem;">Link teilen</button>' : ''}
+                    <button class="btn btn-secondary btn-sm" id="guestLinkCopy" style="padding:0.5rem 1rem;">Link kopieren</button>
+                    <button class="btn btn-primary btn-sm" id="guestLinkClose" style="padding:0.5rem 1rem;">Weiter</button>
+                </div>
+            </div>`;
+        document.body.appendChild(overlay);
+
+        if (navigator.share) {
+            document.getElementById('guestLinkShare').addEventListener('click', () => {
+                navigator.share({
+                    title: 'LostDogTracer – Mein Link',
+                    text: 'Mein persönlicher Link für die Hundesuche:',
+                    url: link
+                }).catch(() => {});
+            });
+        }
+
+        document.getElementById('guestLinkCopy').addEventListener('click', () => {
+            const inp = document.getElementById('guestLinkInput');
+            inp.select();
+            navigator.clipboard.writeText(inp.value).then(() => {
+                document.getElementById('guestLinkCopy').textContent = '✓ Kopiert';
+            }).catch(() => {
+                document.execCommand('copy');
+                document.getElementById('guestLinkCopy').textContent = '✓ Kopiert';
+            });
+        });
+        document.getElementById('guestLinkClose').addEventListener('click', async () => {
+            const nickname = document.getElementById('guestNickname').value.trim();
+            if (nickname && uuid) {
+                localStorage.setItem(STORAGE_KEY_NICK, nickname);
+                try {
+                    await fetch(`${API_BASE}/guest/nickname`, {
+                        method: 'PUT',
+                        headers: { 'X-API-Key': API_KEY, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ uuid, nickName: nickname })
+                    });
+                } catch { /* best effort */ }
+            }
+            overlay.remove();
+            updateGreeting();
+        });
+    }
+
+    async function updateGreeting() {
+        const el = document.getElementById('guestGreeting');
+        if (!el) return;
+        let nick = localStorage.getItem(STORAGE_KEY_NICK);
+        // If no local nickname but we have a token, fetch from backend
+        if (!nick && guestToken) {
+            try {
+                const res = await fetch(`${API_BASE}/guest/nickname?token=${encodeURIComponent(guestToken)}`, {
+                    headers: { 'X-API-Key': API_KEY }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.nickName) {
+                        nick = data.nickName;
+                        localStorage.setItem(STORAGE_KEY_NICK, nick);
+                    }
+                }
+            } catch { /* continue without nickname */ }
+        }
+        el.textContent = nick ? `Hallo, ${nick}!` : 'Hallo, Gast-Helfer*in!';
     }
 
     // ── Resolve dog name via key ─────────────────────────────────
@@ -194,17 +347,17 @@
 
     function onEditRecords() {
         const params = new URLSearchParams();
-        params.set('name', 'HALTER*IN');
         params.set('lostDog', resolvedDogRowKey);
         if (guestKey) params.set('key', guestKey);
+        if (guestToken) params.set('token', guestToken);
         window.location.href = 'guest-records.html?' + params;
     }
 
     function onShowMap() {
         const params = new URLSearchParams();
-        params.set('name', 'HALTER*IN');
         params.set('lostDog', resolvedDogRowKey);
         if (guestKey) params.set('key', guestKey);
+        if (guestToken) params.set('token', guestToken);
         window.location.href = 'guest-map.html?' + params;
     }
 
@@ -218,7 +371,7 @@
         try {
             const position = await getCurrentPosition();
             const entry = {
-                name: 'HALTER*IN',
+                name: 'GUEST',
                 lostDog: resolvedDogRowKey,
                 category: categoryEl.value,
                 comment: commentEl.value.trim(),
@@ -238,6 +391,7 @@
                 fd.append('longitude', entry.longitude.toString());
                 fd.append('accuracy', entry.accuracy.toString());
                 fd.append('timestamp', entry.timestamp);
+                if (guestToken) fd.append('guestToken', guestToken);
                 fd.append('photo', selectedPhotoBlob, 'photo.jpg');
 
                 const res = await fetch(`${API_BASE}/save-location`, {
@@ -247,10 +401,12 @@
                 });
                 if (!res.ok) throw new Error('Speichern fehlgeschlagen');
             } else {
+                const payload = { ...entry };
+                if (guestToken) payload.guestToken = guestToken;
                 const res = await fetch(`${API_BASE}/save-location`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
-                    body: JSON.stringify(entry)
+                    body: JSON.stringify(payload)
                 });
                 if (!res.ok) throw new Error('Speichern fehlgeschlagen');
             }
