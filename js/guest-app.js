@@ -143,7 +143,7 @@
         return base + '?' + params;
     }
 
-    function showPersonalLinkDialog() {
+    function showPersonalLinkDialog(uuid) {
         const link = buildPersonalLink();
         const overlay = document.createElement('div');
         overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:100;display:flex;align-items:center;justify-content:center;';
@@ -156,6 +156,7 @@
                 <p style="font-size:0.8125rem;color:#6e6e73;margin:0 0 0.75rem;">Nein. Der Link enthält einen zufällig generierten Schlüssel, der nur mit dem Standort des Flyers verknüpft ist. Du musst – und sollst – keine persönlichen Daten in der App eingeben. Dein „Spitzname" kann frei erfunden sein.</p>
                 <p style="font-size:0.8125rem;font-weight:600;color:#1d1d1f;margin:0 0 0.25rem;">Was mache ich mit dem Link?</p>
                 <p style="font-size:0.8125rem;color:#6e6e73;margin:0 0 1rem;">Teile ihn dir als Mail oder WhatsApp, oder speichere ihn als Favorit. Gib ihn bitte nicht an andere weiter.</p>
+                <input type="text" id="guestNickname" placeholder="Spitzname (optional)" autocomplete="off" maxlength="30" style="width:100%;padding:0.75rem 1rem;font-size:1rem;border:1px solid #d2d2d7;border-radius:10px;outline:none;margin-bottom:0.75rem;">
                 <input type="text" readonly value="${link.replace(/"/g, '&quot;')}" id="guestLinkInput" style="width:100%;padding:0.75rem 1rem;font-size:0.8125rem;border:1px solid #d2d2d7;border-radius:10px;outline:none;margin-bottom:0.75rem;background:#f5f5f7;">
                 <div style="display:flex;gap:0.5rem;justify-content:flex-end;flex-wrap:wrap;">
                     ${navigator.share ? '<button class="btn btn-secondary btn-sm" id="guestLinkShare" style="padding:0.5rem 1rem;">Link teilen</button>' : ''}
