@@ -14,6 +14,7 @@ LostDogTracer ist eine mobile-first Progressive Web App (PWA) zur Dokumentation 
 - GPS-Standort mit Kategorie, Kommentar und optionalem Foto speichern
 - Automatische Erkennung des angemeldeten Benutzers
 - Einträge und Karte zum ausgewählten Hund anzeigen
+- **Meine/Alle Standorte**: Umschalten zwischen eigenen und allen Einträgen (Tabelle + Karte)
 - Live-Standort-Tracking auf der Karte
 - **Offline-Support**: Einträge werden in IndexedDB zwischengespeichert und bei Verbindung automatisch übertragen
 - PWA-installierbar auf iOS und Android
@@ -30,6 +31,17 @@ LostDogTracer ist eine mobile-first Progressive Web App (PWA) zur Dokumentation 
 - Linkbasierter Zugang über einen 6-Zeichen-Schlüssel pro Hund
 - Standorterfassung mit fester Kategorie (konfigurierbar)
 - Keine Registrierung erforderlich
+- **Persönlicher Token**: Gäste erhalten beim ersten Zugriff einen eindeutigen Token-Link, um eigene Einträge zu identifizieren und löschen zu können
+- **Optionaler Spitzname**: Wird intern zur Zuordnung der Flyer-Standorte verwendet
+- **Meine/Alle Flyer**: Gäste können zwischen eigenen und allen Flyer-Einträgen wechseln
+- **Link teilen**: Share-Dialog (Web Share API) zum Versenden des persönlichen Links
+- Begrüßung mit Spitzname auf der Startseite
+
+### Equipment
+- Kameras und Fallen verwalten (📷)
+- Standort zuweisen über drei Modi: Ort (Adresssuche), Mitglied (aus Benutzerliste) oder Im Einsatz (aus GPS-Records mit Kategorie Standort-Falle/Futterstelle)
+- Kommentar- und UserName-Felder
+- Berechtigungen: ab PowerUser sichtbar und Standort bearbeitbar, ab Manager Vollzugriff
 
 ### Administration
 - Benutzer, Hunde und Kategorien verwalten
@@ -42,13 +54,14 @@ LostDogTracer ist eine mobile-first Progressive Web App (PWA) zur Dokumentation 
 
 | Rolle | Level | Zugriff |
 |-------|-------|---------|
-| User | 1 | Erfassen, GPS-Daten (lesen), Profil, Dokumentation |
-| PowerUser | 2 | + GPS-Daten (bearbeiten, löschen) |
-| Manager | 3 | + Hunde, Benutzer (anlegen) |
+| User | 1 | Erfassen, Profil, Dokumentation |
+| PowerUser | 2 | + GPS-Daten, Equipment (Standort bearbeiten) |
+| Manager | 3 | + Hunde, Benutzer (anlegen), Equipment (Vollzugriff) |
 | Administrator | 4 | + Kategorien, Wartung, Benutzer bearbeiten/löschen, Config |
 
-- PBKDF2-gehashte Passwörter, HMAC-signierte Tokens (24h Lebensdauer)
+- PBKDF2-gehashte Passwörter, HMAC-signierte Tokens (30 Tage Lebensdauer)
 - Rate-Limiting: Read 120/min, Write 15/min, Auth 10/min pro IP
+- Passwort-Sichtbarkeit-Toggle auf allen Kennwortfeldern
 
 ---
 
@@ -65,7 +78,7 @@ LostDogTracer ist eine mobile-first Progressive Web App (PWA) zur Dokumentation 
 │  /api/manage/gps-records, /api/manage/...   │
 │  /api/auth/login, /api/auth/verify          │
 ├─────────────────────────────────────────────┤
-│  Azure Table Storage (5 Tabellen + Config)  │
+│  Azure Table Storage (7 Tabellen + Config)  │
 │  Azure Blob Storage (Fotos)                 │
 └─────────────────────────────────────────────┘
 ```
@@ -74,10 +87,12 @@ LostDogTracer ist eine mobile-first Progressive Web App (PWA) zur Dokumentation 
 
 | Tabelle | PartitionKey | RowKey | Beschreibung |
 |---------|-------------|--------|--------------|
-| `GPSRecords` | Username | Rev-Timestamp | GPS-Einträge mit FK auf Users, LostDogs, Categories |
-| `Users` | `users` | Username | Benutzerkonten mit Rolle und DisplayName |
+| `GPSRecords` | Username / `GUEST` | Rev-Timestamp | GPS-Einträge mit FK auf Users, LostDogs, Categories |
+| `Users` | `users` | Username | Benutzerkonten mit Rolle, DisplayName und Standort |
 | `LostDogs` | `lostdogs` | Name_Suffix | Vermisste Hunde mit DisplayName und Gast-Schlüssel |
 | `Categories` | `categories` | Timestamp-ID | Kategorien mit DisplayName und SVG-Symbol |
+| `Equipment` | `equipment` | Timestamp-ID | Kameras/Fallen mit Standort, Kommentar und UserName |
+| `GuestTokens` | `guest` | UUID | Gast-Registrierungen mit Token und optionalem NickName |
 | `Config` | `config` | `settings` | App-Konfiguration (Banner, Links, Dokumente) |
 
 ---
@@ -98,6 +113,7 @@ LostDogTracer/
 ├── backup.html                   # Wartung (Backup/Restore)
 ├── profile.html                  # Eigenes Profil
 ├── docs.html                     # Dokumentation (PDF-Links)
+├── equipment.html                # Equipment verwalten
 ├── guest-home.html               # Gast: Standort erfassen
 ├── guest-records.html            # Gast: Einträge
 ├── guest-map.html                # Gast: Karte
@@ -120,7 +136,8 @@ LostDogTracer/
 │   ├── backup.js                 # Backup: Export/Import
 │   ├── offline-store.js          # IndexedDB Queue + Dropdown-Cache
 │   ├── svg-icons.js              # SVG-Markersymbole
-│   ├── guest-app.js              # Gast: Erfassung
+│   ├── equipment.js              # Equipment: CRUD + Standort-Modi
+│   ├── guest-app.js              # Gast: Erfassung + Token-Handling
 │   ├── guest-map.js              # Gast: Karte
 │   └── guest-records.js          # Gast: Einträge
 │
@@ -134,14 +151,18 @@ LostDogTracer/
 │   │   ├── UsersFunction.cs
 │   │   ├── AuthFunction.cs
 │   │   ├── BackupRestoreFunction.cs
-│   │   └── ConfigFunction.cs
+│   │   ├── ConfigFunction.cs
+│   │   ├── EquipmentFunction.cs
+│   │   └── GuestTokenFunction.cs
 │   └── Security/
 │       ├── AdminAuth.cs          # Authentifizierung + Rollenverwaltung
 │       ├── ApiKeyValidator.cs
 │       ├── PasswordHasher.cs
 │       └── RateLimiter.cs
 │
-├── docs/                         # PDF-Dokumentation
+├── docs/                         # Rechtliche Seiten & PDF-Dokumentation
+│   ├── datenschutz.html          # Datenschutzerklärung
+│   ├── impressum.html            # Impressum
 │   ├── LostDogTracer-1-Einrichtung_und_erste_Schritte.pdf
 │   ├── LostDogTracer-2-Benutzer_Handbuch.pdf
 │   └── LostDogTracer-3-Admin_Handbuch.pdf
