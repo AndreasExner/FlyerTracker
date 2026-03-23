@@ -58,9 +58,24 @@ public class GPSRecordsFunction
                 catLookup[e.RowKey] = e.GetString("DisplayName") ?? e.GetString("Name") ?? e.RowKey;
 
             var userLookup = await _adminAuth.GetUserDisplayNameMapAsync();
-            // Resolve GUEST partition key for display
-            userLookup.TryAdd("GUEST", "Gast-Helfer*in");
-            userLookup.TryAdd("HALTER*IN", "Gast-Helfer*in (alt)");
+
+            // Build guest token → nickname lookup
+            var guestNickLookup = new Dictionary<string, string>();
+            var guestTable = _tableService.GetTableClient("GuestTokens");
+            try
+            {
+                await guestTable.CreateIfNotExistsAsync();
+                await foreach (var e in guestTable.QueryAsync<TableEntity>(
+                    filter: "PartitionKey eq 'guest'",
+                    select: new[] { "Token", "NickName" }))
+                {
+                    var token = e.GetString("Token") ?? "";
+                    var nick = e.GetString("NickName") ?? "";
+                    if (!string.IsNullOrEmpty(token) && !string.IsNullOrEmpty(nick))
+                        guestNickLookup[token] = nick;
+                }
+            }
+            catch { /* table may not exist yet */ }
 
             var tableClient = _tableService.GetTableClient("GPSRecords");
             await tableClient.CreateIfNotExistsAsync();
@@ -99,12 +114,26 @@ public class GPSRecordsFunction
                 if (!string.IsNullOrEmpty(nameKey)) allNameKeys.Add(nameKey);
                 if (!string.IsNullOrEmpty(categoryKey)) allCategoryKeys.Add(categoryKey);
 
+                // Resolve display name: for GUEST records use nickname from GuestToken
+                string displayName;
+                if (nameKey == "GUEST")
+                {
+                    var gToken = entity.GetString("GuestToken") ?? "";
+                    displayName = !string.IsNullOrEmpty(gToken) && guestNickLookup.TryGetValue(gToken, out var nick)
+                        ? $"Gast: {nick}"
+                        : "Gast-Helfer*in";
+                }
+                else
+                {
+                    displayName = userLookup.GetValueOrDefault(nameKey, nameKey);
+                }
+
                 allRecords.Add(new
                 {
                     partitionKey = entity.PartitionKey,
                     rowKey = entity.RowKey,
                     nameKey,
-                    name = userLookup.GetValueOrDefault(nameKey, nameKey),
+                    name = displayName,
                     lostDogKey,
                     lostDog = dogLookup.GetValueOrDefault(lostDogKey, lostDogKey),
                     latitude = GetDoubleSafe(entity, "Latitude"),
@@ -128,7 +157,7 @@ public class GPSRecordsFunction
                 .Select(k => new { rowKey = k, displayName = dogLookup.GetValueOrDefault(k, k) })
                 .OrderBy(x => x.displayName, deComparer).ToList();
             var names = allNameKeys
-                .Select(k => new { rowKey = k, displayName = userLookup.GetValueOrDefault(k, k) })
+                .Select(k => new { rowKey = k, displayName = k == "GUEST" ? "Gast-Helfer*in" : userLookup.GetValueOrDefault(k, k) })
                 .OrderBy(x => x.displayName, deComparer).ToList();
             var categories = allCategoryKeys
                 .Select(k => new { rowKey = k, displayName = catLookup.GetValueOrDefault(k, k) })
