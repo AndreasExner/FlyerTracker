@@ -143,6 +143,16 @@
                 // Reload page so nav.js picks up the new role
                 location.reload();
             } else {
+                // Show debug details if enabled in config
+                let debugMsg = '';
+                if (window.FT_CONFIG && window.FT_CONFIG.debugLogin) {
+                    const detail = FT_AUTH.login._lastDebug || 'Unbekannt';
+                    const userLen = loginUser.value.length;
+                    const passLen = loginPass.value.length;
+                    debugMsg = `\n[Debug] ${detail} | User: ${userLen} Zeichen | Pass: ${passLen} Zeichen`;
+                }
+                loginError.textContent = 'Benutzername oder Kennwort falsch' + debugMsg;
+                loginError.style.whiteSpace = 'pre-wrap';
                 loginError.style.display = 'block';
             }
             loginBtn.disabled = false;
