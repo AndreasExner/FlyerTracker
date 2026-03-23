@@ -53,7 +53,8 @@ public class ConfigFunction
                 doc2Label = entity.GetString("Doc2Label") ?? "",
                 doc2Link = entity.GetString("Doc2Link") ?? "",
                 doc3Label = entity.GetString("Doc3Label") ?? "",
-                doc3Link = entity.GetString("Doc3Link") ?? ""
+                doc3Link = entity.GetString("Doc3Link") ?? "",
+                debugLogin = string.Equals(entity.GetString("DebugLogin") ?? "", "true", StringComparison.OrdinalIgnoreCase)
             });
         }
         catch (Exception ex)
@@ -121,7 +122,8 @@ public class ConfigFunction
         ["Doc2Label"] = "Benutzer Handbuch",
         ["Doc2Link"] = "docs/LostDogTracer-2-Benutzer_Handbuch.pdf",
         ["Doc3Label"] = "Admin Handbuch",
-        ["Doc3Link"] = "docs/LostDogTracer-3-Admin_Handbuch.pdf"
+        ["Doc3Link"] = "docs/LostDogTracer-3-Admin_Handbuch.pdf",
+        ["DebugLogin"] = "false"
     };
 
     private async Task<TableEntity> GetOrSeedConfigAsync()

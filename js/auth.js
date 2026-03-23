@@ -25,22 +25,44 @@ const FT_AUTH = (function () {
         }, extra || {});
     }
 
-    /** Login → returns token string or null */
+    /** Login → returns token string or null. If debugLogin config is true, returns error details. */
     async function login(username, password) {
-        const res = await fetch(`${API_BASE}/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
-            body: JSON.stringify({ username, password })
-        });
-        if (!res.ok) return null;
-        const data = await res.json();
-        if (data.token) {
-            sessionStorage.setItem(TOKEN_KEY, data.token);
-            if (data.role) sessionStorage.setItem(ROLE_KEY, data.role);
-            return data.token;
+        try {
+            const res = await fetch(`${API_BASE}/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
+                body: JSON.stringify({ username, password })
+            });
+            if (!res.ok) {
+                // Store debug info for caller
+                login._lastDebug = `HTTP ${res.status}`;
+                try { const b = await res.json(); login._lastDebug += ': ' + (b.error || JSON.stringify(b)); } catch {}
+                return null;
+            }
+            const data = await res.json();
+            if (data.token) {
+                try {
+                    sessionStorage.setItem(TOKEN_KEY, data.token);
+                    if (data.role) sessionStorage.setItem(ROLE_KEY, data.role);
+                    // Verify it was actually stored
+                    if (!sessionStorage.getItem(TOKEN_KEY)) {
+                        login._lastDebug = 'sessionStorage: Token konnte nicht gespeichert werden';
+                        return null;
+                    }
+                } catch (e) {
+                    login._lastDebug = 'sessionStorage blockiert: ' + e.message;
+                    return null;
+                }
+                return data.token;
+            }
+            login._lastDebug = 'Kein Token in Antwort';
+            return null;
+        } catch (e) {
+            login._lastDebug = 'Netzwerkfehler: ' + e.message;
+            return null;
         }
-        return null;
     }
+    login._lastDebug = '';
 
     /** Check if admin token exists and is valid (calls /auth/verify) */
     async function isLoggedIn() {
