@@ -321,7 +321,6 @@
 
     function onEditRecords() {
         const params = new URLSearchParams();
-        params.set('name', 'HALTER*IN');
         params.set('lostDog', resolvedDogRowKey);
         if (guestKey) params.set('key', guestKey);
         if (guestToken) params.set('token', guestToken);
@@ -330,7 +329,6 @@
 
     function onShowMap() {
         const params = new URLSearchParams();
-        params.set('name', 'HALTER*IN');
         params.set('lostDog', resolvedDogRowKey);
         if (guestKey) params.set('key', guestKey);
         if (guestToken) params.set('token', guestToken);
@@ -347,7 +345,7 @@
         try {
             const position = await getCurrentPosition();
             const entry = {
-                name: 'HALTER*IN',
+                name: 'GUEST',
                 lostDog: resolvedDogRowKey,
                 category: categoryEl.value,
                 comment: commentEl.value.trim(),

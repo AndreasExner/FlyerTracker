@@ -6,7 +6,6 @@
     const urlParams = new URLSearchParams(location.search);
     const guestKey = urlParams.get('key') || '';
     const guestToken = urlParams.get('token') || localStorage.getItem('lostdogtracer_guest_token') || '';
-    const paramName = urlParams.get('name') || 'HALTER*IN';
     const paramDog = urlParams.get('lostDog') || '';
 
     // Build DOM
@@ -57,7 +56,6 @@
                         return;
                     }
                     const params = new URLSearchParams();
-                    params.set('name', paramName);
                     params.set('lostDog', dog);
                     if (guestKey) params.set('key', guestKey);
                     if (guestToken) params.set('token', guestToken);
