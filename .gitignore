@@ -18,6 +18,10 @@ local.settings.json
 # IDE
 .vs/
 
+# Legal pages with real contact data (use .template.html as base)
+docs/datenschutz.html
+docs/impressum.html
+
 *.swp
 *~
 
