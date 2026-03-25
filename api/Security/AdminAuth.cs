@@ -410,6 +410,7 @@ public class AdminAuth
                 token = authHeader["Bearer ".Length..].Trim();
         }
         if (string.IsNullOrEmpty(token)) return null;
+        if (token.Length > 512) return null; // Reject oversized tokens
         try
         {
             var parts = token.Split('.');
@@ -433,6 +434,7 @@ public class AdminAuth
 
     private bool IsTokenValid(string token)
     {
+        if (token.Length > 512) return false; // Reject oversized tokens
         try
         {
             var parts = token.Split('.');

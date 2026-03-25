@@ -145,7 +145,7 @@ public class CleanupFunction
                             deletedPhotos++;
                         }
                     }
-                    catch { /* best effort */ }
+                    catch (Exception ex) { _logger.LogDebug(ex, "Failed to delete photo blob during cleanup"); }
                 }
 
                 // Delete table record
@@ -154,7 +154,7 @@ public class CleanupFunction
                     await tableClient.DeleteEntityAsync(pk, rk);
                     deletedRecords++;
                 }
-                catch { /* best effort */ }
+                catch (Exception ex) { _logger.LogDebug(ex, "Failed to delete record {PK}/{RK} during cleanup", pk, rk); }
             }
 
             _logger.LogInformation("Cleanup completed: {Records} records, {Photos} photos deleted (older than {Days} days)",

@@ -14,6 +14,11 @@ namespace LostDogTracer.Api.Functions;
 public class SaveLocationFunction
 {
     private const string PhotoContainer = "photos";
+    private const long MaxPhotoBytes = 5 * 1024 * 1024; // 5 MB
+    private const int MaxCommentLength = 40;
+    private const long ReverseTimestampBase = 9_999_999_999_999;
+    private static readonly string[] AllowedPhotoExtensions = { ".jpg", ".jpeg", ".png", ".webp" };
+
     private readonly TableServiceClient _tableService;
     private readonly BlobServiceClient _blobService;
     private readonly ILogger<SaveLocationFunction> _logger;
@@ -90,7 +95,7 @@ public class SaveLocationFunction
             }
 
             // RowKey = reverse timestamp (newest records first in queries)
-            var rowKey = (9_999_999_999_999 - DateTimeOffset.UtcNow.ToUnixTimeMilliseconds())
+            var rowKey = (ReverseTimestampBase - DateTimeOffset.UtcNow.ToUnixTimeMilliseconds())
                 .ToString("D15");
 
             // ── Upload photo to Blob Storage (if provided) ──
@@ -98,14 +103,14 @@ public class SaveLocationFunction
             if (photo is not null && photo.Length > 0)
             {
                 // Limit to 5 MB
-                if (photo.Length > 5 * 1024 * 1024)
+                if (photo.Length > MaxPhotoBytes)
                     return new BadRequestObjectResult(new { error = "Foto darf maximal 5 MB groß sein" });
 
                 var container = _blobService.GetBlobContainerClient(PhotoContainer);
                 await container.CreateIfNotExistsAsync();
 
                 var ext = Path.GetExtension(photo.FileName)?.ToLowerInvariant();
-                if (string.IsNullOrEmpty(ext) || !new[] { ".jpg", ".jpeg", ".png", ".webp" }.Contains(ext))
+                if (string.IsNullOrEmpty(ext) || !AllowedPhotoExtensions.Contains(ext))
                     ext = ".jpg";
 
                 var blobName = $"{name}/{rowKey}{ext}";
@@ -127,8 +132,12 @@ public class SaveLocationFunction
             await tableClient.CreateIfNotExistsAsync();
 
             // Validate comment length
-            if (comment is not null && comment.Length > 40)
-                comment = comment[..40];
+            if (comment is not null)
+            {
+                comment = InputSanitizer.StripHtml(comment);
+                if (comment.Length > MaxCommentLength)
+                    comment = comment[..MaxCommentLength];
+            }
 
             var entity = new TableEntity(name, rowKey)
             {
@@ -161,7 +170,7 @@ public class SaveLocationFunction
                 if (!string.IsNullOrWhiteSpace(userLocation))
                     entity["Location"] = userLocation;
             }
-            catch { /* user not found or no location — skip */ }
+            catch (Exception ex) { _logger.LogDebug(ex, "User location lookup skipped for {Name}", name); }
 
             await tableClient.AddEntityAsync(entity);
 

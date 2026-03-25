@@ -73,7 +73,7 @@ public class UsersFunction
 
             // Manager can only assign role "User"
             var role = callerLevel >= 4 ? (body.Role ?? "User") : "User";
-            var ok = await _auth.CreateUserAsync(body.Username, body.DisplayName, body.Password, role);
+            var ok = await _auth.CreateUserAsync(body.Username, InputSanitizer.StripHtml(body.DisplayName), body.Password, role);
             if (!ok)
                 return new ConflictObjectResult(new { error = $"Benutzer '{body.Username}' existiert bereits" });
 
@@ -115,7 +115,7 @@ public class UsersFunction
             if (!ok)
                 return new NotFoundObjectResult(new { error = "Benutzer nicht gefunden" });
 
-            _logger.LogInformation("Password reset for user: {User}", username);
+            _logger.LogWarning("Password reset for user: {User}", username);
             return new OkObjectResult(new { message = $"Kennwort fuer '{username}' zurueckgesetzt" });
         }
         catch (Exception ex)
@@ -149,7 +149,7 @@ public class UsersFunction
             if (!ok)
                 return new NotFoundObjectResult(new { error = "Benutzer nicht gefunden" });
 
-            _logger.LogInformation("User deleted: {User}", username);
+            _logger.LogWarning("User deleted: {User}", username);
             return new OkObjectResult(new { message = $"Benutzer '{username}' geloescht" });
         }
         catch (Exception ex)
@@ -205,12 +205,14 @@ public class UsersFunction
             if (body is null || (string.IsNullOrWhiteSpace(body.DisplayName) && string.IsNullOrWhiteSpace(body.Role)))
                 return new BadRequestObjectResult(new { error = "Anzeigename oder Rolle erforderlich" });
 
-            var ok = await _auth.UpdateUserAsync(username, body.DisplayName, body.Role,
-                body.Location, body.Latitude, body.Longitude);
+            var sanitizedName = body.DisplayName is not null ? InputSanitizer.StripHtml(body.DisplayName) : null;
+            var sanitizedLocation = body.Location is not null ? InputSanitizer.StripHtml(body.Location) : null;
+            var ok = await _auth.UpdateUserAsync(username, sanitizedName, body.Role,
+                sanitizedLocation, body.Latitude, body.Longitude);
             if (!ok)
                 return new NotFoundObjectResult(new { error = "Benutzer nicht gefunden" });
 
-            _logger.LogInformation("User updated: {User}", username);
+            _logger.LogWarning("User updated: {User}", username);
             return new OkObjectResult(new { message = $"Benutzer '{username}' aktualisiert" });
         }
         catch (Exception ex)

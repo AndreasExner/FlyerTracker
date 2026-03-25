@@ -59,7 +59,7 @@ LostDogTracer ist eine mobile-first Progressive Web App (PWA) zur Dokumentation 
 | Manager | 3 | + Hunde, Benutzer (anlegen), Equipment (Vollzugriff) |
 | Administrator | 4 | + Kategorien, Wartung, Benutzer bearbeiten/löschen, Config |
 
-- PBKDF2-gehashte Passwörter, HMAC-signierte Tokens (30 Tage Lebensdauer)
+- PBKDF2-gehashte Passwörter, HMAC-signierte Tokens (24h Lebensdauer)
 - Rate-Limiting: Read 120/min, Write 15/min, Auth 10/min pro IP
 - Passwort-Sichtbarkeit-Toggle auf allen Kennwortfeldern
 

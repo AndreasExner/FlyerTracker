@@ -108,7 +108,7 @@ public class AuthFunction
             if (!ok)
                 return new BadRequestObjectResult(new { error = "Altes Kennwort ist falsch" });
 
-            _logger.LogInformation("Password changed for: {User}", username?.Replace("\n", "").Replace("\r", ""));
+            _logger.LogWarning("Password changed for: {User}", username?.Replace("\n", "").Replace("\r", ""));
             return new OkObjectResult(new { message = "Kennwort geändert" });
         }
         catch (Exception ex)
