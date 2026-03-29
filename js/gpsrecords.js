@@ -22,6 +22,21 @@
     const toastEl = document.getElementById('toast');
     let toastTimeout = null;
 
+    // ── Read-only mode for User role (< 2) ────────────────────────
+    const isReadOnly = FT_AUTH.getRole() < 2;
+    if (isReadOnly) {
+        // Hide checkbox column header
+        const thCheckbox = selectAllEl?.closest('th');
+        if (thCheckbox) thCheckbox.style.display = 'none';
+        // Hide action buttons, address panel, export
+        [deleteBtn, editBtn].forEach(el => { if (el) el.closest('.table-actions')?.remove(); });
+        const addressPanel = document.getElementById('addressPanel');
+        if (addressPanel) addressPanel.remove();
+        if (exportCsvBtn) exportCsvBtn.closest('.toolbar')?.remove();
+        const editModal = document.getElementById('editModal');
+        if (editModal) editModal.remove();
+    }
+
     // ── Category multi-select helpers ────────────────────────────
     function getSelectedCategories() {
         return [...catDropdownEl.querySelectorAll('input:checked')].map(cb => cb.value);
@@ -119,7 +134,7 @@
     // ── Render table ─────────────────────────────────────────────
     function renderTable() {
         bodyEl.innerHTML = '';
-        selectAllEl.checked = false;
+        if (selectAllEl) selectAllEl.checked = false;
 
         if (data.records.length === 0) {
             bodyEl.innerHTML = '<tr><td colspan="8" style="color:#6e6e73;text-align:center;padding:2rem">Keine Einträge</td></tr>';
@@ -131,8 +146,9 @@
             const photoCell = r.photoUrl
                 ? `<td><img src="${esc(r.photoUrl)}" class="thumb" alt="Foto" onclick="document.getElementById('lightboxImg').src=this.src;document.getElementById('lightbox').classList.remove('hidden');"></td>`
                 : '<td class="no-photo">—</td>';
+            const cbCell = isReadOnly ? '' : `<td><input type="checkbox" class="row-cb" data-pk="${esc(r.partitionKey)}" data-rk="${esc(r.rowKey)}"></td>`;
             tr.innerHTML = `
-                <td><input type="checkbox" class="row-cb" data-pk="${esc(r.partitionKey)}" data-rk="${esc(r.rowKey)}"></td>
+                ${cbCell}
                 <td>${esc(r.name)}</td>
                 <td>${esc(r.lostDog)}</td>
                 <td>${formatDate(r.recordedAt)}</td>
