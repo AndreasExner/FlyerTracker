@@ -79,7 +79,7 @@ public class GuestTokenFunction
             };
 
             if (!string.IsNullOrWhiteSpace(body.NickName))
-                entity["NickName"] = body.NickName.Trim();
+                entity["NickName"] = InputSanitizer.StripHtml(body.NickName.Trim());
 
             await table.AddEntityAsync(entity);
             _logger.LogInformation("Guest registered: UUID={Uuid}", uuid);
@@ -116,7 +116,7 @@ public class GuestTokenFunction
             var response = await table.GetEntityAsync<TableEntity>(PK, body.Uuid.Trim());
             var entity = response.Value;
 
-            entity["NickName"] = (body.NickName ?? "").Trim();
+            entity["NickName"] = InputSanitizer.StripHtml((body.NickName ?? "").Trim());
             await table.UpdateEntityAsync(entity, entity.ETag, TableUpdateMode.Merge);
 
             return new OkObjectResult(new { message = "Aktualisiert" });

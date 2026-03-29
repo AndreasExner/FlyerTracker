@@ -1,3 +1,6 @@
+using System.Security.Cryptography;
+using System.Text;
+
 namespace LostDogTracer.Api.Security;
 
 /// <summary>
@@ -5,17 +8,19 @@ namespace LostDogTracer.Api.Security;
 /// </summary>
 public class ApiKeyValidator
 {
-    private readonly string _apiKey;
+    private readonly byte[] _apiKeyBytes;
 
     public ApiKeyValidator(string apiKey)
     {
-        _apiKey = apiKey;
+        _apiKeyBytes = Encoding.UTF8.GetBytes(apiKey);
     }
 
-    /// <summary>Returns true if the X-API-Key header matches.</summary>
+    /// <summary>Returns true if the X-API-Key header matches (timing-safe).</summary>
     public bool IsValid(Microsoft.AspNetCore.Http.HttpRequest req)
     {
         var key = req.Headers["X-API-Key"].FirstOrDefault();
-        return !string.IsNullOrEmpty(key) && key == _apiKey;
+        if (string.IsNullOrEmpty(key)) return false;
+        var keyBytes = Encoding.UTF8.GetBytes(key);
+        return CryptographicOperations.FixedTimeEquals(keyBytes, _apiKeyBytes);
     }
 }

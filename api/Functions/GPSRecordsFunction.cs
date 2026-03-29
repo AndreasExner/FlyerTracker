@@ -75,7 +75,7 @@ public class GPSRecordsFunction
                         guestNickLookup[token] = nick;
                 }
             }
-            catch { /* table may not exist yet */ }
+            catch (Exception ex) { _logger.LogDebug(ex, "GuestTokens table not available"); }
 
             var tableClient = _tableService.GetTableClient("GPSRecords");
             await tableClient.CreateIfNotExistsAsync();
@@ -227,10 +227,10 @@ public class GPSRecordsFunction
                             var uri = new Uri(photoUrl);
                             var blobName = string.Join("/", uri.Segments.Skip(2)).TrimStart('/');
                             try { await container.DeleteBlobIfExistsAsync(blobName); }
-                            catch { /* best effort */ }
+                            catch (Exception ex) { _logger.LogDebug(ex, "Failed to delete blob {Blob}", blobName); }
                         }
                     }
-                    catch { /* entity may already be gone */ }
+                    catch (Exception ex) { _logger.LogDebug(ex, "Entity lookup failed during batch delete"); }
 
                     await tableClient.DeleteEntityAsync(key.PartitionKey, key.RowKey);
                     deleted++;
@@ -294,10 +294,14 @@ public class GPSRecordsFunction
             int page = int.TryParse(pageStr, out var p) ? Math.Max(1, p) : 1;
 
             // Build query: filter by PK if name provided, otherwise cross-partition
-            string? tableFilter = !string.IsNullOrWhiteSpace(nameFilter)
-                ? $"PartitionKey eq '{nameFilter.Replace("'", "''")}'"
-                : null;
-
+            string? tableFilter = null;
+            if (!string.IsNullOrWhiteSpace(nameFilter))
+            {
+                // Whitelist: only allow alphanumeric, hyphens, underscores, asterisks, max 64 chars
+                if (nameFilter.Length > 64 || !System.Text.RegularExpressions.Regex.IsMatch(nameFilter, @"^[a-zA-Z0-9\-_\*]+$"))
+                    return new BadRequestObjectResult(new { error = "Ung\u00fcltiger Name-Filter" });
+                tableFilter = $"PartitionKey eq '{nameFilter}'";
+            }
             var allRecords = new List<object>();
             await foreach (var entity in tableClient.QueryAsync<TableEntity>(filter: tableFilter))
             {
@@ -398,7 +402,7 @@ public class GPSRecordsFunction
                         var uri = new Uri(photoUrl);
                         var blobName = string.Join("/", uri.Segments.Skip(2)).TrimStart('/');
                         try { await container.DeleteBlobIfExistsAsync(blobName); }
-                        catch { /* best effort */ }
+                        catch (Exception ex) { _logger.LogDebug(ex, "Failed to delete photo blob"); }
                     }
                     await tableClient.DeleteEntityAsync(key.PartitionKey, key.RowKey);
                     deleted++;
@@ -489,9 +493,12 @@ public class GPSRecordsFunction
                     if (body.Category is not null) // allow empty string to clear
                         entity["Category"] = body.Category;
                     if (body.Comment is not null) // allow empty string to clear
-                        entity["Comment"] = body.Comment.Length > 40 ? body.Comment[..40] : body.Comment;
+                    {
+                        var sanitized = InputSanitizer.StripHtml(body.Comment);
+                        entity["Comment"] = sanitized.Length > 40 ? sanitized[..40] : sanitized;
+                    }
                     if (body.Location is not null)
-                        entity["Location"] = body.Location;
+                        entity["Location"] = InputSanitizer.StripHtml(body.Location);
                     if (!string.IsNullOrEmpty(body.RecordedAt))
                         entity["RecordedAt"] = body.RecordedAt;
                     if (body.Latitude.HasValue)

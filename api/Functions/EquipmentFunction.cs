@@ -154,15 +154,15 @@ public class EquipmentFunction
             var rowKey = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString("D15");
             var entity = new TableEntity(PK, rowKey)
             {
-                { "DisplayName", body.DisplayName.Trim() }
+                { "DisplayName", InputSanitizer.StripHtml(body.DisplayName.Trim()) }
             };
 
             if (!string.IsNullOrWhiteSpace(body.Comment))
-                entity["Comment"] = body.Comment.Trim();
+                entity["Comment"] = InputSanitizer.StripHtml(body.Comment.Trim());
             if (!string.IsNullOrWhiteSpace(body.UserName))
-                entity["UserName"] = body.UserName.Trim();
+                entity["UserName"] = InputSanitizer.StripHtml(body.UserName.Trim());
             if (!string.IsNullOrWhiteSpace(body.Location))
-                entity["Location"] = body.Location.Trim();
+                entity["Location"] = InputSanitizer.StripHtml(body.Location.Trim());
             if (body.Latitude.HasValue)
                 entity["Latitude"] = body.Latitude.Value;
             if (body.Longitude.HasValue)
@@ -171,7 +171,7 @@ public class EquipmentFunction
             await table.AddEntityAsync(entity);
             _logger.LogInformation("Equipment created: {Name}", body.DisplayName);
 
-            return new CreatedResult("", new { rowKey, displayName = body.DisplayName.Trim() });
+            return new CreatedResult("", new { rowKey, displayName = InputSanitizer.StripHtml(body.DisplayName.Trim()) });
         }
         catch (Exception ex)
         {
@@ -210,15 +210,15 @@ public class EquipmentFunction
             if (callerLevel >= 3)
             {
                 if (!string.IsNullOrWhiteSpace(body.DisplayName))
-                    entity["DisplayName"] = body.DisplayName.Trim();
+                    entity["DisplayName"] = InputSanitizer.StripHtml(body.DisplayName.Trim());
                 if (body.Comment is not null)
-                    entity["Comment"] = body.Comment.Trim();
+                    entity["Comment"] = InputSanitizer.StripHtml(body.Comment.Trim());
             }
 
             if (body.UserName is not null)
-                entity["UserName"] = body.UserName.Trim();
+                entity["UserName"] = InputSanitizer.StripHtml(body.UserName.Trim());
             if (body.Location is not null)
-                entity["Location"] = body.Location.Trim();
+                entity["Location"] = InputSanitizer.StripHtml(body.Location.Trim());
             if (body.Latitude.HasValue)
                 entity["Latitude"] = body.Latitude.Value;
             if (body.Longitude.HasValue)
