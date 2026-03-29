@@ -22,6 +22,22 @@
     const toastEl = document.getElementById('toast');
     let toastTimeout = null;
 
+    // ── Read-only mode for User role (< 2) ────────────────────────
+    const isReadOnly = FT_AUTH.getRoleLevel() < 2;
+    if (isReadOnly) {
+        // Hide checkbox column header
+        const thCheckbox = selectAllEl?.closest('th');
+        if (thCheckbox) thCheckbox.style.display = 'none';
+        // Hide action buttons, address panel, export, edit modal
+        const tableActions = document.querySelector('.table-actions');
+        if (tableActions) tableActions.style.display = 'none';
+        const addressPanel = document.getElementById('addressPanel');
+        if (addressPanel) addressPanel.style.display = 'none';
+        if (exportCsvBtn) exportCsvBtn.closest('.toolbar').style.display = 'none';
+        const editModal = document.getElementById('editModal');
+        if (editModal) editModal.style.display = 'none';
+    }
+
     // ── Category multi-select helpers ────────────────────────────
     function getSelectedCategories() {
         return [...catDropdownEl.querySelectorAll('input:checked')].map(cb => cb.value);
@@ -119,7 +135,7 @@
     // ── Render table ─────────────────────────────────────────────
     function renderTable() {
         bodyEl.innerHTML = '';
-        selectAllEl.checked = false;
+        if (selectAllEl) selectAllEl.checked = false;
 
         if (data.records.length === 0) {
             bodyEl.innerHTML = '<tr><td colspan="8" style="color:#6e6e73;text-align:center;padding:2rem">Keine Einträge</td></tr>';
@@ -131,8 +147,9 @@
             const photoCell = r.photoUrl
                 ? `<td><img src="${esc(r.photoUrl)}" class="thumb" alt="Foto" onclick="document.getElementById('lightboxImg').src=this.src;document.getElementById('lightbox').classList.remove('hidden');"></td>`
                 : '<td class="no-photo">—</td>';
+            const cbCell = isReadOnly ? '' : `<td><input type="checkbox" class="row-cb" data-pk="${esc(r.partitionKey)}" data-rk="${esc(r.rowKey)}"></td>`;
             tr.innerHTML = `
-                <td><input type="checkbox" class="row-cb" data-pk="${esc(r.partitionKey)}" data-rk="${esc(r.rowKey)}"></td>
+                ${cbCell}
                 <td>${esc(r.name)}</td>
                 <td>${esc(r.lostDog)}</td>
                 <td>${formatDate(r.recordedAt)}</td>

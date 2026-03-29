@@ -8,7 +8,7 @@
 
     const pages = [
         { href: 'field-home.html', icon: '🚩', label: 'Erfassen', minRole: 1 },
-        { href: 'gpsrecords.html', icon: '📍', label: 'GPS-Daten', minRole: 2 },
+        { href: 'gpsrecords.html', icon: '📍', label: 'GPS-Daten', minRole: 1 },
         { href: 'equipment.html',  icon: '📷', label: 'Equipment', minRole: 2 },
         { href: 'lostdogs.html',   icon: '🐕', label: 'Hunde', minRole: 3 },
         { href: 'categories.html', icon: '🏷️', label: 'Kategorien', minRole: 4 },
