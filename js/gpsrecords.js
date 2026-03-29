@@ -23,7 +23,7 @@
     let toastTimeout = null;
 
     // ── Read-only mode for User role (< 2) ────────────────────────
-    const isReadOnly = FT_AUTH.getRole() < 2;
+    const isReadOnly = FT_AUTH.getRoleLevel() < 2;
     if (isReadOnly) {
         // Hide checkbox column header
         const thCheckbox = selectAllEl?.closest('th');
