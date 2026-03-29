@@ -2,7 +2,7 @@
 (function () {
     // Inject on sub-pages and index.html menu page
     const path = location.pathname;
-    const isSubPage = /(?:gpsrecords|map|lostdogs|categories|users|equipment|deployments|deployment-records|maintenance|profile|docs)\.html$/i.test(path);
+    const isSubPage = /(?:gpsrecords|map|lostdogs|categories|users|equipment|deployments|deployment-records|deployment-accounting|maintenance|profile|docs)\.html$/i.test(path);
     const isHome = /index\.html$/i.test(path) || path === '/' || path.endsWith('/');
     if (!isSubPage && !isHome) return;
 

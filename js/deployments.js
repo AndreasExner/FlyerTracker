@@ -17,8 +17,7 @@
     const manualDogEl = document.getElementById('manualDog');
     const manualStartEl = document.getElementById('manualStart');
     const manualEndEl = document.getElementById('manualEnd');
-    const manualKmStartEl = document.getElementById('manualKmStart');
-    const manualKmEndEl = document.getElementById('manualKmEnd');
+    const manualKmDrivenEl = document.getElementById('manualKmDriven');
     const manualSaveBtn = document.getElementById('manualSaveBtn');
     const toastEl = document.getElementById('toast');
     let toastTimeout = null;
@@ -64,13 +63,15 @@
                 activeStartEl.textContent = formatDateTime(status.startTime);
                 activeDogEl.textContent = ' — ' + (dogSelectEl.selectedOptions[0]?.textContent || status.dog);
 
-                // Show km end row, pre-fill with km start
+                // Show km end row only if km start was provided, pre-fill with km start
                 kmStartRow.classList.add('hidden');
-                kmEndRow.classList.remove('hidden');
                 if (status.kmStart != null) {
+                    kmEndRow.classList.remove('hidden');
                     kmEndInput.value = status.kmStart;
                     kmEndCheck.checked = true;
                     kmEndInput.classList.remove('hidden');
+                } else {
+                    kmEndRow.classList.add('hidden');
                 }
 
                 deployBtn.textContent = '🛑 Einsatz beenden';
@@ -181,8 +182,7 @@
             startTime: new Date(manualStartEl.value).toISOString(),
             endTime: new Date(manualEndEl.value).toISOString()
         };
-        if (manualKmStartEl.value) payload.kmStart = parseInt(manualKmStartEl.value, 10);
-        if (manualKmEndEl.value) payload.kmEnd = parseInt(manualKmEndEl.value, 10);
+        if (manualKmDrivenEl.value) payload.kmDriven = parseInt(manualKmDrivenEl.value, 10);
 
         try {
             const res = await fetch(`${API_BASE}/deployments`, {
@@ -199,8 +199,7 @@
             manualDogEl.value = '';
             manualStartEl.value = '';
             manualEndEl.value = '';
-            manualKmStartEl.value = '';
-            manualKmEndEl.value = '';
+            manualKmDrivenEl.value = '';
             document.getElementById('manualPanel').open = false;
         } catch (err) {
             showToast(err.message || 'Fehler beim Speichern', true);
@@ -254,5 +253,8 @@
     }
 
     // ── Init ─────────────────────────────────────────────────────
+    if (FT_AUTH.isAccountant()) {
+        document.getElementById('accountingBtn').classList.remove('hidden');
+    }
     loadDogs().then(() => checkStatus());
 })();

@@ -294,6 +294,7 @@ public class DeploymentFunction
             var endTime = body.TryGetProperty("endTime", out var e2) ? e2.GetString() : null;
             var kmStart = body.TryGetProperty("kmStart", out var k1) && k1.ValueKind == JsonValueKind.Number ? k1.GetInt32() : (int?)null;
             var kmEnd = body.TryGetProperty("kmEnd", out var k2) && k2.ValueKind == JsonValueKind.Number ? k2.GetInt32() : (int?)null;
+            var kmDrivenDirect = body.TryGetProperty("kmDriven", out var kd) && kd.ValueKind == JsonValueKind.Number ? kd.GetInt32() : (int?)null;
 
             if (string.IsNullOrWhiteSpace(dog) || string.IsNullOrWhiteSpace(startTime) || string.IsNullOrWhiteSpace(endTime))
                 return new BadRequestObjectResult(new { error = "Hund, Start- und Endzeit sind erforderlich" });
@@ -305,7 +306,8 @@ public class DeploymentFunction
                 return new BadRequestObjectResult(new { error = "Endzeit muss nach Startzeit liegen" });
 
             int durationMin = (int)(endDt - startDt).TotalMinutes;
-            int? kmDriven = (kmStart.HasValue && kmEnd.HasValue && kmEnd.Value >= kmStart.Value) ? kmEnd.Value - kmStart.Value : null;
+            int? kmDriven = kmDrivenDirect
+                ?? ((kmStart.HasValue && kmEnd.HasValue && kmEnd.Value >= kmStart.Value) ? kmEnd.Value - kmStart.Value : null);
 
             var table = _tableService.GetTableClient(TableName);
             await table.CreateIfNotExistsAsync();
@@ -430,6 +432,107 @@ public class DeploymentFunction
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting deployment");
+            return new StatusCodeResult(500);
+        }
+    }
+
+    // ── Accounting: all deployments (Accountant only) ────────────
+    [Function("GetAllDeployments")]
+    public async Task<IActionResult> GetAllDeployments(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "deployments/accounting")] HttpRequest req)
+    {
+        try
+        {
+            if (!_apiKey.IsValid(req))
+                return new ObjectResult(new { error = "Ungültiger API-Key" }) { StatusCode = 403 };
+            var ip = req.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            if (!_rateLimit.Read.IsAllowed(ip))
+                return new ObjectResult(new { error = "Zu viele Anfragen. Bitte warten." }) { StatusCode = 429 };
+            var username = await ValidateAndGetUser(req, 1);
+            if (username == null)
+                return AdminAuth.Forbidden();
+            if (!await _adminAuth.IsAccountantAsync(username))
+                return AdminAuth.Forbidden();
+
+            var table = _tableService.GetTableClient(TableName);
+            await table.CreateIfNotExistsAsync();
+
+            // Resolve dog display names
+            var dogLookup = new Dictionary<string, string>();
+            var dogTable = _tableService.GetTableClient("LostDogs");
+            await dogTable.CreateIfNotExistsAsync();
+            await foreach (var e in dogTable.QueryAsync<TableEntity>(select: new[] { "RowKey", "DisplayName", "Location" }))
+                dogLookup[e.RowKey] = e.GetString("DisplayName") ?? e.GetString("Location") ?? e.RowKey;
+
+            // Resolve user display names
+            var userLookup = new Dictionary<string, string>();
+            var usersTable = _tableService.GetTableClient("Users");
+            await foreach (var e in usersTable.QueryAsync<TableEntity>(
+                filter: "PartitionKey eq 'users'", select: new[] { "RowKey", "DisplayName" }))
+                userLookup[e.RowKey] = e.GetString("DisplayName") ?? e.RowKey;
+
+            // Optional filters
+            var filterUser = req.Query["user"].FirstOrDefault();
+            var filterDog = req.Query["dog"].FirstOrDefault();
+            var filterFrom = req.Query["from"].FirstOrDefault();
+            var filterTo = req.Query["to"].FirstOrDefault();
+
+            DateTimeOffset? fromDt = null, toDt = null;
+            if (!string.IsNullOrEmpty(filterFrom) && DateTimeOffset.TryParse(filterFrom, out var f)) fromDt = f;
+            if (!string.IsNullOrEmpty(filterTo) && DateTimeOffset.TryParse(filterTo, out var t)) toDt = t.AddDays(1); // inclusive end
+
+            var items = new List<object>();
+            await foreach (var entity in table.QueryAsync<TableEntity>())
+            {
+                var user = entity.PartitionKey;
+                if (!string.IsNullOrEmpty(filterUser) && !string.Equals(user, filterUser, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                var entityDog = entity.GetString("LostDog") ?? "";
+                if (!string.IsNullOrEmpty(filterDog) && entityDog != filterDog) continue;
+
+                var startStr = entity.GetString("StartTime") ?? "";
+                if (DateTimeOffset.TryParse(startStr, out var startDt))
+                {
+                    if (fromDt.HasValue && startDt < fromDt.Value) continue;
+                    if (toDt.HasValue && startDt >= toDt.Value) continue;
+                }
+
+                items.Add(new
+                {
+                    rowKey = entity.RowKey,
+                    user,
+                    userDisplay = userLookup.GetValueOrDefault(user, user),
+                    lostDog = dogLookup.GetValueOrDefault(entityDog, entityDog),
+                    lostDogKey = entityDog,
+                    startTime = startStr,
+                    endTime = entity.GetString("EndTime") ?? "",
+                    duration = entity.GetInt32("Duration") ?? 0,
+                    kmStart = entity.GetInt32("KmStart"),
+                    kmEnd = entity.GetInt32("KmEnd"),
+                    kmDriven = entity.GetInt32("KmDriven")
+                });
+            }
+
+            // Collect unique users and dogs for filter dropdowns
+            var users = items.Select(i => ((dynamic)i).user as string)
+                .Where(u => !string.IsNullOrEmpty(u)).Distinct()
+                .OrderBy(u => userLookup.GetValueOrDefault(u!, u!), StringComparer.Create(new System.Globalization.CultureInfo("de-DE"), false))
+                .Select(u => new { username = u, displayName = userLookup.GetValueOrDefault(u!, u!) })
+                .ToList();
+
+            var dogs = items.Select(i => new { key = ((dynamic)i).lostDogKey as string, name = ((dynamic)i).lostDog as string })
+                .Where(d => !string.IsNullOrEmpty(d.key))
+                .DistinctBy(d => d.key)
+                .OrderBy(d => d.name, StringComparer.Create(new System.Globalization.CultureInfo("de-DE"), false))
+                .Select(d => new { rowKey = d.key, displayName = d.name })
+                .ToList();
+
+            return new OkObjectResult(new { records = items, users, lostDogs = dogs });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading accounting data");
             return new StatusCodeResult(500);
         }
     }
