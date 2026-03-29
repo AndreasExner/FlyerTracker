@@ -8,6 +8,7 @@
     const toastEl = document.getElementById('toast');
     const createModal = document.getElementById('createDogModal');
     const editModal = document.getElementById('editDogModal');
+    const shareModal = document.getElementById('shareDogModal');
     let toastTimeout = null;
 
     function openModal(m) { m.classList.add('open'); }
@@ -49,12 +50,12 @@
             li.appendChild(editBtn);
 
             if (item.suffix) {
-                const linkBtn = document.createElement('button');
-                linkBtn.className = 'btn btn-secondary btn-sm';
-                linkBtn.style.marginRight = '0.5rem';
-                linkBtn.textContent = '🔗 Link';
-                linkBtn.addEventListener('click', () => copyGuestLink(item.suffix, item.displayName));
-                li.appendChild(linkBtn);
+                const shareBtn = document.createElement('button');
+                shareBtn.className = 'btn btn-secondary btn-sm';
+                shareBtn.style.marginRight = '0.5rem';
+                shareBtn.textContent = '📤 Teilen';
+                shareBtn.addEventListener('click', () => openShareModal(item.rowKey, item.suffix, item.displayName));
+                li.appendChild(shareBtn);
             }
 
             const delBtn = document.createElement('button');
@@ -151,15 +152,64 @@
         }
     }
 
-    async function copyGuestLink(suffix, displayName) {
-        const url = `${window.location.origin}/guest-home.html?key=${encodeURIComponent(suffix)}`;
+    /* ── Share modal ───────────────────────────── */
+    let shareRowKey = '';
+    let shareSuffix = '';
+    let shareDisplayName = '';
+
+    function openShareModal(rowKey, suffix, displayName) {
+        shareRowKey = rowKey;
+        shareSuffix = suffix;
+        shareDisplayName = displayName;
+        document.getElementById('shareDogTitle').textContent = displayName;
+        document.getElementById('shareGuestCopy').textContent = '📋 Helfer-Link kopieren';
+        document.getElementById('shareOwnerCopy').textContent = '📋 Besitzer-Link erzeugen & kopieren';
+        document.getElementById('shareOwnerStatus').style.display = 'none';
+        openModal(shareModal);
+    }
+
+    document.getElementById('shareDogClose').addEventListener('click', () => closeModal(shareModal));
+
+    document.getElementById('shareGuestCopy').addEventListener('click', async () => {
+        const url = `${window.location.origin}/guest-home.html?key=${encodeURIComponent(shareSuffix)}`;
         try {
             await navigator.clipboard.writeText(url);
-            showToast(`Link für \u201E${displayName}\u201C kopiert`);
+            document.getElementById('shareGuestCopy').textContent = '✓ Kopiert';
+            showToast(`Helfer-Link für \u201E${shareDisplayName}\u201C kopiert`);
         } catch {
             prompt('Link kopieren:', url);
         }
-    }
+    });
+
+    document.getElementById('shareOwnerCopy').addEventListener('click', async () => {
+        const btn = document.getElementById('shareOwnerCopy');
+        const status = document.getElementById('shareOwnerStatus');
+        btn.disabled = true;
+        btn.textContent = '⏳ Wird erzeugt…';
+
+        try {
+            const res = await fetch(`${API_BASE}/manage/lost-dogs/${encodeURIComponent(shareRowKey)}/owner-key`, {
+                method: 'POST',
+                headers: FT_AUTH.adminHeaders()
+            });
+            if (res.status === 401) { FT_AUTH.sessionExpired(); return; }
+            if (!res.ok) throw new Error();
+            const data = await res.json();
+            const url = `${window.location.origin}/owner-home.html?key=${encodeURIComponent(data.ownerKey)}`;
+            await navigator.clipboard.writeText(url);
+            btn.textContent = '✓ Kopiert';
+            status.textContent = '✓ Besitzer-Link wurde in die Zwischenablage kopiert';
+            status.style.display = 'block';
+            showToast(`Besitzer-Link für \u201E${shareDisplayName}\u201C kopiert`);
+        } catch {
+            btn.textContent = '❌ Fehler';
+            status.textContent = 'Fehler beim Erzeugen des Links';
+            status.style.display = 'block';
+            status.style.color = '#ff3b30';
+        } finally {
+            btn.disabled = false;
+        }
+    });
 
     function esc(s) {
         return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);

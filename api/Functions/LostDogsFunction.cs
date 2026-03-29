@@ -101,6 +101,41 @@ public class LostDogsFunction
         }
     }
 
+    [Function("GetLostDogByOwnerKey")]
+    public async Task<IActionResult> GetLostDogByOwnerKey(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "lost-dogs/by-owner-key/{key}")] HttpRequest req,
+        string key)
+    {
+        try
+        {
+            if (!_apiKey.IsValid(req))
+                return new ObjectResult(new { error = "Ungültiger API-Key" }) { StatusCode = 403 };
+            var ip = req.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            if (!_rateLimit.Read.IsAllowed(ip))
+                return new ObjectResult(new { error = "Zu viele Anfragen. Bitte warten." }) { StatusCode = 429 };
+
+            if (string.IsNullOrWhiteSpace(key) || key.Length < 16)
+                return new NotFoundObjectResult(new { error = "Ungültiger Key" });
+
+            var tableClient = _tableService.GetTableClient("LostDogs");
+            await tableClient.CreateIfNotExistsAsync();
+
+            var filter = $"OwnerKey eq '{key.Replace("'", "''")}'";
+            await foreach (var entity in tableClient.QueryAsync<TableEntity>(filter))
+            {
+                var displayName = entity.GetString("DisplayName") ?? entity.GetString("Location") ?? entity.RowKey;
+                return new OkObjectResult(new { displayName, rowKey = entity.RowKey });
+            }
+
+            return new NotFoundObjectResult(new { error = "Hund nicht gefunden" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error looking up lost dog by owner key");
+            return new StatusCodeResult(500);
+        }
+    }
+
     [Function("GetLostDogsAdmin")]
     public async Task<IActionResult> GetLostDogsAdmin(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "manage/lost-dogs")] HttpRequest req)
@@ -136,6 +171,48 @@ public class LostDogsFunction
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error loading lost dogs (admin)");
+            return new StatusCodeResult(500);
+        }
+    }
+
+    [Function("GenerateOwnerKey")]
+    public async Task<IActionResult> GenerateOwnerKey(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "manage/lost-dogs/{rowKey}/owner-key")] HttpRequest req,
+        string rowKey)
+    {
+        try
+        {
+            if (!_apiKey.IsValid(req))
+                return new ObjectResult(new { error = "Ungültiger API-Key" }) { StatusCode = 403 };
+            var ip = req.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            if (!_rateLimit.Write.IsAllowed(ip))
+                return new ObjectResult(new { error = "Zu viele Anfragen. Bitte warten." }) { StatusCode = 429 };
+            if (await _adminAuth.ValidateTokenWithRole(req, 3) == 0)
+                return AdminAuth.Forbidden();
+
+            var tableClient = _tableService.GetTableClient("LostDogs");
+            var entityResponse = await tableClient.GetEntityAsync<TableEntity>("lostdogs", rowKey);
+            var entity = entityResponse.Value;
+
+            // Generate if not exists, otherwise return existing
+            var ownerKey = entity.GetString("OwnerKey");
+            if (string.IsNullOrWhiteSpace(ownerKey))
+            {
+                ownerKey = GenerateRandomSuffix(24);
+                entity["OwnerKey"] = ownerKey;
+                await tableClient.UpdateEntityAsync(entity, entity.ETag, TableUpdateMode.Replace);
+                _logger.LogInformation("Owner key generated for dog {RowKey}", rowKey);
+            }
+
+            return new OkObjectResult(new { ownerKey });
+        }
+        catch (Azure.RequestFailedException ex) when (ex.Status == 404)
+        {
+            return new NotFoundObjectResult(new { error = "Hund nicht gefunden" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating owner key");
             return new StatusCodeResult(500);
         }
     }

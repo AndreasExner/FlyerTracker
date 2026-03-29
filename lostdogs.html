@@ -71,6 +71,31 @@
             </div>
         </div>
     </div>
+
+    <!-- Modal: Share links -->
+    <div class="modal-overlay" id="shareDogModal">
+        <div class="modal">
+            <h3>Links teilen: <span id="shareDogTitle"></span></h3>
+            <p style="font-size:0.8125rem;color:#6e6e73;margin:0 0 1rem;">Wähle den passenden Link zum Teilen.</p>
+
+            <div style="margin-bottom:1rem;">
+                <p style="font-weight:600;font-size:0.875rem;margin:0 0 0.35rem;">👥 Helfer-Link (Gast)</p>
+                <p style="font-size:0.75rem;color:#6e6e73;margin:0 0 0.5rem;">Für freiwillige Helfer*innen, die Flyer aufhängen möchten.</p>
+                <button class="btn btn-secondary btn-sm" id="shareGuestCopy" style="width:100%;">📋 Helfer-Link kopieren</button>
+            </div>
+
+            <div style="border-top:1px solid #e8e8ed;padding-top:1rem;">
+                <p style="font-weight:600;font-size:0.875rem;margin:0 0 0.35rem;">🏠 Besitzer-Link</p>
+                <p style="font-size:0.75rem;color:#6e6e73;margin:0 0 0.5rem;">Für den Hundebesitzer. Zeigt alle Daten, kann eigene Flyer-Standorte eintragen.</p>
+                <button class="btn btn-primary btn-sm" id="shareOwnerCopy" style="width:100%;">📋 Besitzer-Link erzeugen &amp; kopieren</button>
+                <p id="shareOwnerStatus" style="font-size:0.75rem;color:#34c759;margin:0.35rem 0 0;display:none;"></p>
+            </div>
+
+            <div class="modal-buttons" style="margin-top:1rem;">
+                <button class="btn btn-secondary btn-sm" id="shareDogClose">Schließen</button>
+            </div>
+        </div>
+    </div>
     <script src="js/auth.js"></script>
     <script>
         FT_AUTH.requireRole(3);

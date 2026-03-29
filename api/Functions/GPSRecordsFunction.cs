@@ -268,6 +268,7 @@ public class GPSRecordsFunction
             var nameFilter = req.Query["name"].FirstOrDefault();
             var lostDogFilter = req.Query["lostDog"].FirstOrDefault();
             var guestTokenFilter = req.Query["guestToken"].FirstOrDefault() ?? "";
+            var ownerKeyFilter = req.Query["ownerKey"].FirstOrDefault() ?? "";
 
             if (string.IsNullOrWhiteSpace(lostDogFilter))
                 return new BadRequestObjectResult(new { error = "lostDog ist erforderlich" });
@@ -310,9 +311,13 @@ public class GPSRecordsFunction
 
                 var categoryKey = entity.GetString("Category") ?? "";
                 var recordToken = entity.GetString("GuestToken") ?? "";
-                var isOwner = !string.IsNullOrEmpty(guestTokenFilter)
+                var recordOwnerKey = entity.GetString("OwnerKey") ?? "";
+                var isOwner = (!string.IsNullOrEmpty(guestTokenFilter)
                     && !string.IsNullOrEmpty(recordToken)
-                    && recordToken == guestTokenFilter;
+                    && recordToken == guestTokenFilter)
+                    || (!string.IsNullOrEmpty(ownerKeyFilter)
+                    && !string.IsNullOrEmpty(recordOwnerKey)
+                    && recordOwnerKey == ownerKeyFilter);
                 allRecords.Add(new
                 {
                     partitionKey = entity.PartitionKey,
@@ -396,6 +401,13 @@ public class GPSRecordsFunction
                         if (recordToken != body.GuestToken) continue;
                     }
 
+                    // Owner key ownership: if ownerKey is provided, only delete records with matching key
+                    if (!string.IsNullOrEmpty(body.OwnerKey))
+                    {
+                        var recordOwnerKey = entity.Value.GetString("OwnerKey") ?? "";
+                        if (recordOwnerKey != body.OwnerKey) continue;
+                    }
+
                     var photoUrl = entity.Value.GetString("PhotoUrl");
                     if (!string.IsNullOrEmpty(photoUrl))
                     {
@@ -431,6 +443,7 @@ public class GPSRecordsFunction
         public string Name { get; init; } = "";
         public string LostDog { get; init; } = "";
         public string? GuestToken { get; init; }
+        public string? OwnerKey { get; init; }
         public List<DeleteKey> Keys { get; init; } = new();
     }
 
