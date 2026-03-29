@@ -71,7 +71,7 @@
             const created = u.createdAt ? new Date(u.createdAt).toLocaleDateString('de-DE') : '—';
             const lastLogin = u.lastLogin ? new Date(u.lastLogin).toLocaleString('de-DE') : 'Nie';
             const role = u.role || 'User';
-            const acc = u.accountant ? ' · 📊 Accountant' : '';
+            const acc = u.accountant ? ' · 📊 Abrechnung' : '';
             const loc = u.location ? ` · 📍 ${esc(u.location)}` : '';
             const editBtn = isAdmin ? `<button class="btn btn-secondary btn-sm" onclick="AdminUsers.editUser('${esc(u.username)}','${esc(u.displayName || u.username)}','${esc(role)}','${esc(u.location || '')}',${u.latitude || 0},${u.longitude || 0},${!!u.accountant})">Bearbeiten</button>` : '';
             const pwBtn = isAdmin ? `<button class="btn btn-secondary btn-sm" onclick="AdminUsers.resetPw('${esc(u.username)}')">Kennwort</button>` : '';

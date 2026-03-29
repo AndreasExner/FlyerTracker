@@ -12,7 +12,6 @@
     const totalDurationEl = document.getElementById('totalDuration');
     const totalKmEl = document.getElementById('totalKm');
     const sortDateEl = document.getElementById('sortDate');
-    const exportExcelBtn = document.getElementById('exportExcelBtn');
     const exportCsvBtn = document.getElementById('exportCsvBtn');
     const toastEl = document.getElementById('toast');
     let toastTimeout = null;
@@ -148,27 +147,6 @@
         const bom = '\uFEFF';
         const csv = bom + header + '\n' + rows.join('\n');
         downloadFile(csv, 'einsatzzeiten.csv', 'text/csv;charset=utf-8;');
-    });
-
-    // ── Export Excel (TSV with .xls extension for compatibility) ──
-    exportExcelBtn.addEventListener('click', () => {
-        if (allRecords.length === 0) { showToast('Keine Daten zum Exportieren', true); return; }
-
-        const tab = '\t';
-        const header = ['Helfer', 'Datum', 'Hund', 'Beginn', 'Ende', 'Dauer (min)', 'Km'].join(tab);
-        const rows = allRecords.map(r => [
-            r.userDisplay,
-            formatDate(r.startTime),
-            r.lostDog,
-            formatTime(r.startTime),
-            formatTime(r.endTime),
-            r.duration || 0,
-            r.kmDriven != null ? r.kmDriven : ''
-        ].join(tab));
-
-        const bom = '\uFEFF';
-        const content = bom + header + '\n' + rows.join('\n');
-        downloadFile(content, 'einsatzzeiten.xls', 'application/vnd.ms-excel;charset=utf-8;');
     });
 
     function downloadFile(content, filename, mimeType) {
