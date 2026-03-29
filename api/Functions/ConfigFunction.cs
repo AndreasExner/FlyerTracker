@@ -55,8 +55,8 @@ public class ConfigFunction
                 doc3Label = entity.GetString("Doc3Label") ?? "",
                 doc3Link = entity.GetString("Doc3Link") ?? "",
                 debugLogin = string.Equals(entity.GetString("DebugLogin") ?? "", "true", StringComparison.OrdinalIgnoreCase),
-                featDeployment = entity.GetBoolean("FeatDeployment") ?? !string.Equals(entity.GetString("FeatDeployment") ?? "true", "false", StringComparison.OrdinalIgnoreCase),
-                featEquipment = entity.GetBoolean("FeatEquipment") ?? !string.Equals(entity.GetString("FeatEquipment") ?? "true", "false", StringComparison.OrdinalIgnoreCase)
+                featDeployment = GetBoolSafe(entity, "FeatDeployment", true),
+                featEquipment = GetBoolSafe(entity, "FeatEquipment", true)
             });
         }
         catch (Exception ex)
@@ -167,5 +167,13 @@ public class ConfigFunction
             await table.AddEntityAsync(entity);
             return entity;
         }
+    }
+
+    /// <summary>Read a boolean from a TableEntity, handling both native bool and string representations.</summary>
+    private static bool GetBoolSafe(TableEntity entity, string key, bool defaultValue)
+    {
+        try { var b = entity.GetBoolean(key); if (b.HasValue) return b.Value; } catch { /* not a bool type */ }
+        try { var s = entity.GetString(key); if (s != null) return string.Equals(s, "true", StringComparison.OrdinalIgnoreCase); } catch { /* ignore */ }
+        return defaultValue;
     }
 }
