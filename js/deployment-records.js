@@ -5,6 +5,8 @@
 
     const filterDogEl = document.getElementById('filterDog');
     const bodyEl = document.getElementById('recordsBody');
+    const selectAllEl = document.getElementById('selectAll');
+    const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
     const editModal = document.getElementById('editModal');
     const editDogEl = document.getElementById('editDog');
     const editStartEl = document.getElementById('editStart');
@@ -19,7 +21,7 @@
 
     // ── Load records ─────────────────────────────────────────────
     async function loadRecords() {
-        bodyEl.innerHTML = '<tr><td colspan="6" style="color:#6e6e73;text-align:center;padding:2rem">Lädt…</td></tr>';
+        bodyEl.innerHTML = '<tr><td colspan="7" style="color:#6e6e73;text-align:center;padding:2rem">Lädt…</td></tr>';
         const dog = filterDogEl.value;
         const params = new URLSearchParams();
         if (dog) params.set('dog', dog);
@@ -59,7 +61,7 @@
     function renderTable(records) {
         bodyEl.innerHTML = '';
         if (records.length === 0) {
-            bodyEl.innerHTML = '<tr><td colspan="6" style="color:#6e6e73;text-align:center;padding:2rem">Keine Einträge</td></tr>';
+            bodyEl.innerHTML = '<tr><td colspan="7" style="color:#6e6e73;text-align:center;padding:2rem">Keine Einträge</td></tr>';
             return;
         }
         records.forEach(r => {
@@ -67,6 +69,7 @@
             const km = r.kmDriven != null ? r.kmDriven + ' km' : '—';
             const dur = formatDuration(r.duration);
             tr.innerHTML =
+                `<td><input type="checkbox" class="row-cb" data-rk="${esc(r.rowKey)}"></td>` +
                 `<td>${esc(r.lostDog)}</td>` +
                 `<td>${formatDateTime(r.startTime)}</td>` +
                 `<td>${formatDateTime(r.endTime)}</td>` +
@@ -151,6 +154,44 @@
             showToast('Fehler beim Löschen', true);
         }
     }
+
+    // ── Select all / checkboxes ────────────────────────────────────
+    selectAllEl.addEventListener('change', () => {
+        document.querySelectorAll('.row-cb').forEach(cb => { cb.checked = selectAllEl.checked; });
+        updateDeleteBtn();
+    });
+    bodyEl.addEventListener('change', e => {
+        if (e.target.classList.contains('row-cb')) updateDeleteBtn();
+    });
+
+    function updateDeleteBtn() {
+        const checked = document.querySelectorAll('.row-cb:checked');
+        deleteSelectedBtn.disabled = checked.length === 0;
+        deleteSelectedBtn.textContent = checked.length > 0
+            ? `${checked.length} löschen`
+            : 'Ausgewählte löschen';
+    }
+
+    deleteSelectedBtn.addEventListener('click', async () => {
+        const checked = [...document.querySelectorAll('.row-cb:checked')];
+        if (checked.length === 0) return;
+        if (!confirm(`${checked.length} Einsatz/Einsätze wirklich löschen?`)) return;
+        deleteSelectedBtn.disabled = true;
+        deleteSelectedBtn.textContent = '⏳…';
+        let ok = 0;
+        for (const cb of checked) {
+            try {
+                const res = await fetch(`${API_BASE}/deployments/${encodeURIComponent(cb.dataset.rk)}`, {
+                    method: 'DELETE',
+                    headers: FT_AUTH.adminHeaders()
+                });
+                if (res.ok) ok++;
+            } catch { /* continue */ }
+        }
+        showToast(`${ok} Einsatz/Einsätze gelöscht`);
+        await loadRecords();
+        updateDeleteBtn();
+    });
 
     // ── Events ───────────────────────────────────────────────────
     filterDogEl.addEventListener('change', () => loadRecords());

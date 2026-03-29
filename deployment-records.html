@@ -26,6 +26,7 @@
             <table class="data-table">
                 <thead>
                     <tr>
+                        <th><input type="checkbox" id="selectAll" title="Alle auswählen"></th>
                         <th>Hund</th>
                         <th>Beginn</th>
                         <th>Ende</th>
@@ -36,6 +37,10 @@
                 </thead>
                 <tbody id="recordsBody"></tbody>
             </table>
+        </div>
+
+        <div class="table-actions">
+            <button class="btn btn-danger btn-sm" id="deleteSelectedBtn" disabled>Ausgewählte löschen</button>
         </div>
 
         <!-- Edit modal -->

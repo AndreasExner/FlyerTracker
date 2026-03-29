@@ -64,9 +64,14 @@
                 activeStartEl.textContent = formatDateTime(status.startTime);
                 activeDogEl.textContent = ' — ' + (dogSelectEl.selectedOptions[0]?.textContent || status.dog);
 
-                // Show km end row
+                // Show km end row, pre-fill with km start
                 kmStartRow.classList.add('hidden');
                 kmEndRow.classList.remove('hidden');
+                if (status.kmStart != null) {
+                    kmEndInput.value = status.kmStart;
+                    kmEndCheck.checked = true;
+                    kmEndInput.classList.remove('hidden');
+                }
 
                 deployBtn.textContent = '🛑 Einsatz beenden';
                 deployBtn.className = 'btn-deploy stop';
