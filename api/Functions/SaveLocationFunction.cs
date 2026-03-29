@@ -56,6 +56,7 @@ public class SaveLocationFunction
 
             string? comment, category;
             string? guestToken;
+            string? ownerKey;
 
             if (contentType.Contains("multipart/form-data", StringComparison.OrdinalIgnoreCase))
             {
@@ -70,6 +71,7 @@ public class SaveLocationFunction
                 comment = form["comment"].FirstOrDefault();
                 category = form["category"].FirstOrDefault();
                 guestToken = form["guestToken"].FirstOrDefault();
+                ownerKey = form["ownerKey"].FirstOrDefault();
                 photo = form.Files.GetFile("photo");
             }
             else
@@ -86,6 +88,7 @@ public class SaveLocationFunction
                 comment = body?.Comment;
                 category = body?.Category;
                 guestToken = body?.GuestToken;
+                ownerKey = body?.OwnerKey;
             }
 
             if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(lostDog) ||
@@ -160,6 +163,9 @@ public class SaveLocationFunction
             if (!string.IsNullOrWhiteSpace(guestToken))
                 entity["GuestToken"] = guestToken.Trim();
 
+            if (!string.IsNullOrWhiteSpace(ownerKey))
+                entity["OwnerKey"] = ownerKey.Trim();
+
             await tableClient.AddEntityAsync(entity);
 
             _logger.LogInformation("Location saved: {Name} ({LostDog}) Photo:{HasPhoto}",
@@ -187,5 +193,6 @@ public class SaveLocationFunction
         public string? Comment { get; init; }
         public string? Category { get; init; }
         public string? GuestToken { get; init; }
+        public string? OwnerKey { get; init; }
     }
 }

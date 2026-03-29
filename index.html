@@ -81,12 +81,12 @@
                 <span class="label">GPS-Daten</span>
                 <span class="desc">GPS-Aufzeichnungen anzeigen &amp; verwalten</span>
             </a>
-            <a href="deployments.html" class="menu-card" data-min-role="1">
+            <a href="deployments.html" class="menu-card" data-min-role="1" data-feat="deployment">
                 <span class="icon">⏱️</span>
                 <span class="label">Einsatzzeiten</span>
                 <span class="desc">Einsatzzeiten &amp; gefahrene km erfassen</span>
             </a>
-            <a href="equipment.html" class="menu-card" data-min-role="2">
+            <a href="equipment.html" class="menu-card" data-min-role="2" data-feat="equipment">
                 <span class="icon">📷</span>
                 <span class="label">Equipment</span>
                 <span class="desc">Kameras &amp; Fallen verwalten</span>
@@ -173,6 +173,26 @@
                 const min = parseInt(card.dataset.minRole, 10);
                 if (level < min) card.style.display = 'none';
             });
+            // Hide feature-gated cards (may need to wait for config)
+            applyFeatureFlags();
+        }
+
+        function applyFeatureFlags() {
+            var cfg = window.FT_CONFIG;
+            if (!cfg) {
+                // Try sessionStorage cache (set by theme.js)
+                try {
+                    var cached = sessionStorage.getItem('lostdogtracer_config');
+                    if (cached) cfg = JSON.parse(cached);
+                } catch {}
+            }
+            if (!cfg) {
+                // Config not loaded yet — retry
+                setTimeout(applyFeatureFlags, 300);
+                return;
+            }
+            if (cfg.featDeployment === false) document.querySelectorAll('[data-feat="deployment"]').forEach(function(el) { el.style.display = 'none'; });
+            if (cfg.featEquipment === false) document.querySelectorAll('[data-feat="equipment"]').forEach(function(el) { el.style.display = 'none'; });
         }
     })();
     </script>

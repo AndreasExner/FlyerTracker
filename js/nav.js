@@ -9,8 +9,8 @@
     const pages = [
         { href: 'field-home.html', icon: '🚩', label: 'Erfassen', minRole: 1 },
         { href: 'gpsrecords.html', icon: '📍', label: 'GPS-Daten', minRole: 1 },
-        { href: 'deployments.html', icon: '⏱️', label: 'Einsatzzeiten', minRole: 1 },
-        { href: 'equipment.html',  icon: '📷', label: 'Equipment', minRole: 2 },
+        { href: 'deployments.html', icon: '⏱️', label: 'Einsatzzeiten', minRole: 1, feat: 'deployment' },
+        { href: 'equipment.html',  icon: '📷', label: 'Equipment', minRole: 2, feat: 'equipment' },
         { href: 'lostdogs.html',   icon: '🐕', label: 'Hunde', minRole: 3 },
         { href: 'categories.html', icon: '🏷️', label: 'Kategorien', minRole: 4 },
         { href: 'users.html',      icon: '🔑', label: 'Benutzer', minRole: 3 },
@@ -31,10 +31,18 @@
     // Home link
     drawer.innerHTML = `<a href="index.html"${isHome ? ' class="active"' : ''}><span class="nav-icon">🏠</span> Übersicht</a><div class="nav-divider"></div>`;
 
-    // Page links (filtered by role)
+    // Page links (filtered by role + feature flags)
     const currentFile = path.split('/').pop();
+    var cfg = window.FT_CONFIG;
+    if (!cfg) {
+        try { var cached = sessionStorage.getItem('lostdogtracer_config'); if (cached) cfg = JSON.parse(cached); } catch {}
+    }
     pages.forEach(p => {
         if (roleLevel < (p.minRole || 1)) return;
+        if (p.feat && cfg) {
+            if (p.feat === 'deployment' && cfg.featDeployment === false) return;
+            if (p.feat === 'equipment' && cfg.featEquipment === false) return;
+        }
         const a = document.createElement('a');
         a.href = p.href;
         a.innerHTML = `<span class="nav-icon">${p.icon}</span> ${p.label}`;

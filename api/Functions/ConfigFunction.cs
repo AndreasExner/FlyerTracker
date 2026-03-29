@@ -54,7 +54,9 @@ public class ConfigFunction
                 doc2Link = entity.GetString("Doc2Link") ?? "",
                 doc3Label = entity.GetString("Doc3Label") ?? "",
                 doc3Link = entity.GetString("Doc3Link") ?? "",
-                debugLogin = string.Equals(entity.GetString("DebugLogin") ?? "", "true", StringComparison.OrdinalIgnoreCase)
+                debugLogin = string.Equals(entity.GetString("DebugLogin") ?? "", "true", StringComparison.OrdinalIgnoreCase),
+                featDeployment = GetBoolSafe(entity, "FeatDeployment", true),
+                featEquipment = GetBoolSafe(entity, "FeatEquipment", true)
             });
         }
         catch (Exception ex)
@@ -98,6 +100,10 @@ public class ConfigFunction
                 if (body.TryGetProperty(camel, out var docProp))
                     entity[docField] = docProp.GetString()?.Trim() ?? "";
             }
+            if (body.TryGetProperty("featDeployment", out var fdProp))
+                entity["FeatDeployment"] = fdProp.GetBoolean();
+            if (body.TryGetProperty("featEquipment", out var feProp))
+                entity["FeatEquipment"] = feProp.GetBoolean();
 
             await table.UpsertEntityAsync(entity, TableUpdateMode.Replace);
             _logger.LogInformation("Config updated");
@@ -123,7 +129,9 @@ public class ConfigFunction
         ["Doc2Link"] = "docs/LostDogTracer-2-Benutzer_Handbuch.pdf",
         ["Doc3Label"] = "Admin Handbuch",
         ["Doc3Link"] = "docs/LostDogTracer-3-Admin_Handbuch.pdf",
-        ["DebugLogin"] = "false"
+        ["DebugLogin"] = "false",
+        ["FeatDeployment"] = "true",
+        ["FeatEquipment"] = "true"
     };
 
     private async Task<TableEntity> GetOrSeedConfigAsync()
@@ -159,5 +167,13 @@ public class ConfigFunction
             await table.AddEntityAsync(entity);
             return entity;
         }
+    }
+
+    /// <summary>Read a boolean from a TableEntity, handling both native bool and string representations.</summary>
+    private static bool GetBoolSafe(TableEntity entity, string key, bool defaultValue)
+    {
+        try { var b = entity.GetBoolean(key); if (b.HasValue) return b.Value; } catch { /* not a bool type */ }
+        try { var s = entity.GetString(key); if (s != null) return string.Equals(s, "true", StringComparison.OrdinalIgnoreCase); } catch { /* ignore */ }
+        return defaultValue;
     }
 }
