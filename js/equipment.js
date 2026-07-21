@@ -17,6 +17,22 @@
     function closeModal(m) { m.classList.remove('open'); }
     function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
 
+    function simStatusBadge(dateStr) {
+        let label, bg, color;
+        if (!dateStr) {
+            label = 'n/a'; bg = '#f2f2f7'; color = '#8e8e93';
+        } else {
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+            const p = String(dateStr).split('-');
+            const exp = new Date(+p[0], +p[1] - 1, +p[2]);
+            const diffDays = Math.round((exp - today) / 86400000);
+            if (diffDays < 0) { label = 'Abgelaufen'; bg = 'rgba(255,59,48,.15)'; color = '#ff3b30'; }
+            else if (diffDays <= 7) { label = 'Läuft ab'; bg = 'rgba(255,204,0,.25)'; color = '#b8860b'; }
+            else { label = 'Guthaben'; bg = 'rgba(52,199,89,.18)'; color = '#248a3d'; }
+        }
+        return `<span style="font-size:0.6875rem;font-weight:600;padding:0.125rem 0.5rem;border-radius:999px;background:${bg};color:${color};white-space:nowrap;">${label}</span>`;
+    }
+
     async function apiCall(url, opts = {}) {
         try { const res = await fetch(url, opts); if (res.status === 401) { FT_AUTH.sessionExpired(); return null; } return res; }
         catch { showToast('Netzwerkfehler', false); return null; }
@@ -45,7 +61,7 @@
             return `
             <div class="eq-card">
                 <div class="eq-info">
-                    <strong>${esc(item.displayName)}</strong>
+                    <strong style="display:flex;align-items:center;gap:0.5rem;">${esc(item.displayName)}${simStatusBadge(item.simExpiryDate)}</strong>
                     <small>${info}</small>
                 </div>
                 <div class="eq-actions">
