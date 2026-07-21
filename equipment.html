@@ -31,6 +31,10 @@
             width: 100%; padding: 0.75rem 1rem; font-size: 1rem;
             border: 1px solid #d2d2d7; border-radius: 10px; outline: none;
             margin-bottom: 0.75rem;
+            box-sizing: border-box; max-width: 100%; min-width: 0;
+        }
+        .modal input[type="date"] {
+            -webkit-appearance: none; appearance: none;
         }
         .modal input:focus { border-color: #0071e3; box-shadow: 0 0 0 3px rgba(0,113,227,.15); }
         .modal-buttons { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.5rem; }
@@ -49,6 +53,7 @@
 
         <div class="add-row">
             <button class="btn btn-primary" id="addBtn">+ Neues Equipment</button>
+            <a href="equipment-map.html" class="btn btn-secondary">🗺️ Karte</a>
         </div>
         <div id="eqList"></div>
 
