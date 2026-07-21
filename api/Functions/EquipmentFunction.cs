@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Azure.Data.Tables;
 using LostDogTracer.Api.Security;
 using Microsoft.AspNetCore.Http;
@@ -58,7 +59,9 @@ public class EquipmentFunction
                     userName = entity.GetString("UserName") ?? "",
                     location = entity.GetString("Location") ?? "",
                     latitude = entity.GetDouble("Latitude"),
-                    longitude = entity.GetDouble("Longitude")
+                    longitude = entity.GetDouble("Longitude"),
+                    phoneNumber = entity.GetString("PhoneNumber") ?? "",
+                    simExpiryDate = entity.GetString("SimExpiryDate") ?? ""
                 });
             }
 
@@ -148,6 +151,12 @@ public class EquipmentFunction
             if (body is null || string.IsNullOrWhiteSpace(body.DisplayName))
                 return new BadRequestObjectResult(new { error = "Bezeichnung erforderlich" });
 
+            if (!string.IsNullOrWhiteSpace(body.PhoneNumber) && !IsValidE164(body.PhoneNumber.Trim()))
+                return new BadRequestObjectResult(new { error = "Telefonnummer muss im E.164-Format sein (z. B. +491234567890)" });
+
+            if (!string.IsNullOrWhiteSpace(body.SimExpiryDate) && !IsValidIsoDate(body.SimExpiryDate.Trim()))
+                return new BadRequestObjectResult(new { error = "Datum muss im Format JJJJ-MM-TT sein" });
+
             var table = _tableService.GetTableClient(TableName);
             await table.CreateIfNotExistsAsync();
 
@@ -167,6 +176,10 @@ public class EquipmentFunction
                 entity["Latitude"] = body.Latitude.Value;
             if (body.Longitude.HasValue)
                 entity["Longitude"] = body.Longitude.Value;
+            if (!string.IsNullOrWhiteSpace(body.PhoneNumber))
+                entity["PhoneNumber"] = body.PhoneNumber.Trim();
+            if (!string.IsNullOrWhiteSpace(body.SimExpiryDate))
+                entity["SimExpiryDate"] = body.SimExpiryDate.Trim();
 
             await table.AddEntityAsync(entity);
             _logger.LogInformation("Equipment created: {Name}", body.DisplayName);
@@ -202,6 +215,12 @@ public class EquipmentFunction
             if (body is null)
                 return new BadRequestObjectResult(new { error = "Daten erforderlich" });
 
+            if (!string.IsNullOrWhiteSpace(body.PhoneNumber) && !IsValidE164(body.PhoneNumber.Trim()))
+                return new BadRequestObjectResult(new { error = "Telefonnummer muss im E.164-Format sein (z. B. +491234567890)" });
+
+            if (!string.IsNullOrWhiteSpace(body.SimExpiryDate) && !IsValidIsoDate(body.SimExpiryDate.Trim()))
+                return new BadRequestObjectResult(new { error = "Datum muss im Format JJJJ-MM-TT sein" });
+
             var table = _tableService.GetTableClient(TableName);
             var response = await table.GetEntityAsync<TableEntity>(PK, rowKey);
             var entity = response.Value;
@@ -223,6 +242,10 @@ public class EquipmentFunction
                 entity["Latitude"] = body.Latitude.Value;
             if (body.Longitude.HasValue)
                 entity["Longitude"] = body.Longitude.Value;
+            if (body.PhoneNumber is not null)
+                entity["PhoneNumber"] = body.PhoneNumber.Trim();
+            if (body.SimExpiryDate is not null)
+                entity["SimExpiryDate"] = body.SimExpiryDate.Trim();
 
             await table.UpdateEntityAsync(entity, entity.ETag, TableUpdateMode.Replace);
             _logger.LogInformation("Equipment updated: {RowKey}", rowKey);
@@ -272,6 +295,14 @@ public class EquipmentFunction
         }
     }
 
+    private static readonly Regex E164Regex = new(@"^\+[1-9]\d{1,14}$", RegexOptions.Compiled);
+
+    private static bool IsValidE164(string value) => E164Regex.IsMatch(value);
+
+    private static bool IsValidIsoDate(string value) =>
+        DateOnly.TryParseExact(value, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.None, out _);
+
     private record EquipmentRequest
     {
         public string? DisplayName { get; init; }
@@ -280,5 +311,7 @@ public class EquipmentFunction
         public string? Location { get; init; }
         public double? Latitude { get; init; }
         public double? Longitude { get; init; }
+        public string? PhoneNumber { get; init; }
+        public string? SimExpiryDate { get; init; }
     }
 }

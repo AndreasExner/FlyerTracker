@@ -49,8 +49,7 @@
                     <small>${info}</small>
                 </div>
                 <div class="eq-actions">
-                    <button class="btn btn-secondary btn-sm" onclick="EQ.edit('${esc(item.rowKey)}','${esc(item.displayName)}','${esc(item.comment || '')}','${esc(item.userName || '')}','${esc(item.location || '')}',${item.latitude || 0},${item.longitude || 0})">${roleLevel >= 3 ? 'Bearbeiten' : 'Standort'}</button>
-                    ${roleLevel >= 3 ? `<button class="btn btn-sm" style="background:#ff3b30;color:#fff" onclick="EQ.del('${esc(item.rowKey)}','${esc(item.displayName)}')">L\u00f6schen</button>` : ''}
+                    <button class="btn btn-secondary btn-sm" onclick="EQ.edit('${esc(item.rowKey)}','${esc(item.displayName)}','${esc(item.comment || '')}','${esc(item.userName || '')}','${esc(item.location || '')}',${item.latitude || 0},${item.longitude || 0},'${esc(item.phoneNumber || '')}','${esc(item.simExpiryDate || '')}')">Details</button>
                 </div>
             </div>`;
         }).join('');
@@ -209,7 +208,7 @@
     /* ── Edit ─────────────────────────────────── */
     let editTarget = '';
     window.EQ = window.EQ || {};
-    EQ.edit = function (rowKey, displayName, comment, userName, location, lat, lng) {
+    EQ.edit = function (rowKey, displayName, comment, userName, location, lat, lng, phoneNumber, simExpiryDate) {
         editTarget = rowKey;
         document.getElementById('editEqName').value = displayName;
         document.getElementById('editEqComment').value = comment || '';
@@ -217,10 +216,14 @@
         document.getElementById('editEqLat').value = lat || '';
         document.getElementById('editEqLng').value = lng || '';
         document.getElementById('editEqUserName').value = userName || '';
+        document.getElementById('editEqPhone').value = phoneNumber || '';
+        document.getElementById('editEqSimExpiry').value = simExpiryDate || '';
         hideError('editEqError');
         // Disable name/comment for PowerUser
         document.getElementById('editEqName').disabled = roleLevel < 3;
         document.getElementById('editEqComment').disabled = roleLevel < 3;
+        // Delete only for Manager+
+        document.getElementById('editEqDelete').style.display = roleLevel >= 3 ? '' : 'none';
         // Reset to "Ort" mode, clear caches
         cachedUsers = null;
         cachedEinsatzRecords = null;
@@ -231,6 +234,11 @@
     document.getElementById('editEqSave').addEventListener('click', async () => {
         const displayName = document.getElementById('editEqName').value.trim();
         if (!displayName) { showError('editEqError', 'Bezeichnung darf nicht leer sein.'); return; }
+        const phoneNumber = document.getElementById('editEqPhone').value.trim();
+        if (phoneNumber && !/^\+[1-9]\d{1,14}$/.test(phoneNumber)) {
+            showError('editEqError', 'Telefonnummer muss im E.164-Format sein (z. B. +491234567890).');
+            return;
+        }
         const btn = document.getElementById('editEqSave');
         btn.disabled = true;
         const res = await apiCall(`${API}/manage/equipment/${encodeURIComponent(editTarget)}`, {
@@ -242,7 +250,9 @@
                 userName: document.getElementById('editEqUserName').value.trim() || null,
                 location: document.getElementById('editEqLocation').value.trim() || null,
                 latitude: parseFloat(document.getElementById('editEqLat').value) || null,
-                longitude: parseFloat(document.getElementById('editEqLng').value) || null
+                longitude: parseFloat(document.getElementById('editEqLng').value) || null,
+                phoneNumber: phoneNumber || '',
+                simExpiryDate: document.getElementById('editEqSimExpiry').value.trim() || ''
             })
         });
         btn.disabled = false;
@@ -251,16 +261,19 @@
         else { const d = await res.json().catch(() => ({})); showError('editEqError', d.error || 'Fehler'); }
     });
 
-    /* ── Delete ───────────────────────────────── */
-    EQ.del = async function (rowKey, displayName) {
-        if (!confirm(`"${displayName}" wirklich löschen?`)) return;
-        const res = await apiCall(`${API}/manage/equipment/${encodeURIComponent(rowKey)}`, {
-            method: 'DELETE', headers: FT_AUTH.adminHeaders()
+    /* ── Delete (from detail modal) ───────────── */
+    if (roleLevel >= 3) {
+        document.getElementById('editEqDelete').addEventListener('click', async () => {
+            const name = document.getElementById('editEqName').value.trim();
+            if (!confirm(`"${name}" wirklich löschen?`)) return;
+            const res = await apiCall(`${API}/manage/equipment/${encodeURIComponent(editTarget)}`, {
+                method: 'DELETE', headers: FT_AUTH.adminHeaders()
+            });
+            if (!res) return;
+            if (res.ok) { closeModal(editModal); showToast('Equipment gelöscht'); loadEquipment(); }
+            else { showToast('Fehler beim Löschen', false); }
         });
-        if (!res) return;
-        if (res.ok) { showToast('Equipment gelöscht'); loadEquipment(); }
-        else { showToast('Fehler beim Löschen', false); }
-    };
+    }
 
     /* ── Location search (Nominatim, city-level) ── */
     async function searchLocation(inputId, latId, lngId) {

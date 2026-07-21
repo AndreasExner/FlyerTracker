@@ -108,11 +108,19 @@
             <!-- Resolved location display -->
             <div id="editEqResolvedLoc" style="font-size:0.8125rem;color:#6e6e73;margin-bottom:0.75rem;display:none;"></div>
 
+            <!-- Contact & SIM -->
+            <label for="editEqPhone" style="display:block;font-size:0.8125rem;color:#6e6e73;margin-bottom:0.25rem;">Telefonnummer</label>
+            <input type="tel" id="editEqPhone" placeholder="+491234567890" autocomplete="off" inputmode="tel">
+
+            <label for="editEqSimExpiry" style="display:block;font-size:0.8125rem;color:#6e6e73;margin-bottom:0.25rem;">Ablauf SIM-Aufladung</label>
+            <input type="date" id="editEqSimExpiry">
+
             <input type="hidden" id="editEqLat">
             <input type="hidden" id="editEqLng">
             <input type="hidden" id="editEqUserName">
             <p class="modal-error" id="editEqError"></p>
             <div class="modal-buttons">
+                <button class="btn btn-sm" id="editEqDelete" style="background:#ff3b30;color:#fff;margin-right:auto;display:none;">Löschen</button>
                 <button class="btn btn-secondary btn-sm" id="editEqCancel">Abbrechen</button>
                 <button class="btn btn-primary btn-sm" id="editEqSave">Speichern</button>
             </div>
