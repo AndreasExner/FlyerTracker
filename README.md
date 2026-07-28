@@ -40,7 +40,12 @@ LostDogTracer ist eine mobile-first Progressive Web App (PWA) zur Dokumentation 
 ### Equipment
 - Kameras und Fallen verwalten (📷)
 - Standort zuweisen über drei Modi: Ort (Adresssuche), Mitglied (aus Benutzerliste) oder Im Einsatz (aus GPS-Records mit Kategorie Standort-Falle/Futterstelle)
-- Kommentar- und UserName-Felder
+- Equipment-Typ: Falle, Kamera (Abo), Kamera (SIM) oder Sonstiges
+- Kommentar-, UserName-, Telefonnummer- (E.164) und SIM-Ablaufdatum-Felder
+- SIM-Ablaufdatum nur bei Typ Falle und Kamera (SIM) relevant
+- Typabhängiger Status-Badge in der Liste: SIM-Status (Guthaben / Läuft ab / Abgelaufen / n/a) bei Falle und Kamera (SIM), grünes "Abo" bei Kamera (Abo), kein Badge bei Sonstiges
+- Detailansicht mit allen Feldern; Löschen ab Manager
+- **Kartenansicht** (Read-only): Standard-Pin je Standort, Klick öffnet Modal mit allen dort gelagerten Einheiten
 - Berechtigungen: ab PowerUser sichtbar und Standort bearbeitbar, ab Manager Vollzugriff
 
 ### Administration
@@ -91,7 +96,7 @@ LostDogTracer ist eine mobile-first Progressive Web App (PWA) zur Dokumentation 
 | `Users` | `users` | Username | Benutzerkonten mit Rolle, DisplayName und Standort |
 | `LostDogs` | `lostdogs` | Name_Suffix | Vermisste Hunde mit DisplayName und Gast-Schlüssel |
 | `Categories` | `categories` | Timestamp-ID | Kategorien mit DisplayName und SVG-Symbol |
-| `Equipment` | `equipment` | Timestamp-ID | Kameras/Fallen mit Standort, Kommentar und UserName |
+| `Equipment` | `equipment` | Timestamp-ID | Kameras/Fallen mit Typ, Standort, Kommentar, UserName, Telefonnummer und SIM-Ablaufdatum |
 | `GuestTokens` | `guest` | UUID | Gast-Registrierungen mit Token und optionalem NickName |
 | `Config` | `config` | `settings` | App-Konfiguration (Banner, Links, Dokumente) |
 
@@ -114,6 +119,7 @@ LostDogTracer/
 ├── profile.html                  # Eigenes Profil
 ├── docs.html                     # Dokumentation (PDF-Links)
 ├── equipment.html                # Equipment verwalten
+├── equipment-map.html            # Equipment: Kartenansicht (Read-only)
 ├── guest-home.html               # Gast: Standort erfassen
 ├── guest-records.html            # Gast: Einträge
 ├── guest-map.html                # Gast: Karte
@@ -137,6 +143,7 @@ LostDogTracer/
 │   ├── offline-store.js          # IndexedDB Queue + Dropdown-Cache
 │   ├── svg-icons.js              # SVG-Markersymbole
 │   ├── equipment.js              # Equipment: CRUD + Standort-Modi
+│   ├── equipment-map.js          # Equipment: Kartenansicht (gruppiert nach Standort)
 │   ├── guest-app.js              # Gast: Erfassung + Token-Handling
 │   ├── guest-map.js              # Gast: Karte
 │   └── guest-records.js          # Gast: Einträge

@@ -22,6 +22,19 @@
         return (s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
     }
 
+    const TYPE_LABELS = { falle: 'Falle', kamera_abo: 'Kamera (Abo)', kamera_sim: 'Kamera (SIM)', sonstiges: 'Sonstiges' };
+    function typeNeedsSim(type) { return type === 'falle' || type === 'kamera_sim'; }
+
+    function pill(label, bg, color) {
+        return `<span style="font-size:0.6875rem;font-weight:600;padding:0.125rem 0.5rem;border-radius:999px;background:${bg};color:${color};white-space:nowrap;">${label}</span>`;
+    }
+
+    function statusBadge(type, dateStr) {
+        if (type === 'kamera_abo') return pill('Abo', 'rgba(52,199,89,.18)', '#248a3d');
+        if (typeNeedsSim(type)) return simStatusBadge(dateStr);
+        return '';
+    }
+
     function simStatusBadge(dateStr) {
         let label, bg, color;
         if (!dateStr) {
@@ -35,7 +48,7 @@
             else if (diffDays <= 7) { label = 'Läuft ab'; bg = 'rgba(255,204,0,.25)'; color = '#b8860b'; }
             else { label = 'Guthaben'; bg = 'rgba(52,199,89,.18)'; color = '#248a3d'; }
         }
-        return `<span style="font-size:0.6875rem;font-weight:600;padding:0.125rem 0.5rem;border-radius:999px;background:${bg};color:${color};white-space:nowrap;">${label}</span>`;
+        return pill(label, bg, color);
     }
 
     // ── Standard pin (teardrop) ──────────────────────────────────
@@ -96,12 +109,14 @@
 
         locListEl.innerHTML = group.items.map(item => {
             const details = [];
+            const typeLabel = TYPE_LABELS[item.equipmentType];
+            if (typeLabel) details.push('🏷️ ' + typeLabel);
             if (item.comment) details.push('💬 ' + escHtml(item.comment));
             if (item.phoneNumber) details.push('📞 ' + escHtml(item.phoneNumber));
-            if (item.simExpiryDate) details.push('📅 ' + escHtml(item.simExpiryDate));
+            if (typeNeedsSim(item.equipmentType) && item.simExpiryDate) details.push('📅 ' + escHtml(item.simExpiryDate));
             const detailHtml = details.length ? `<small>${details.join(' · ')}</small>` : '';
             return `<div class="eq-loc-item">
-                <strong>${escHtml(item.displayName)}${simStatusBadge(item.simExpiryDate)}</strong>
+                <strong>${escHtml(item.displayName)}${statusBadge(item.equipmentType, item.simExpiryDate)}</strong>
                 ${detailHtml}
             </div>`;
         }).join('');

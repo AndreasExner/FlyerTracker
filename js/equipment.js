@@ -17,6 +17,22 @@
     function closeModal(m) { m.classList.remove('open'); }
     function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
 
+    const TYPE_LABELS = { falle: 'Falle', kamera_abo: 'Kamera (Abo)', kamera_sim: 'Kamera (SIM)', sonstiges: 'Sonstiges' };
+
+    // SIM-Aufladung is only relevant for these types
+    function typeNeedsSim(type) { return type === 'falle' || type === 'kamera_sim'; }
+
+    function pill(label, bg, color) {
+        return `<span style="font-size:0.6875rem;font-weight:600;padding:0.125rem 0.5rem;border-radius:999px;background:${bg};color:${color};white-space:nowrap;">${label}</span>`;
+    }
+
+    // Type-dependent status badge for the list/detail views
+    function statusBadge(type, dateStr) {
+        if (type === 'kamera_abo') return pill('Abo', 'rgba(52,199,89,.18)', '#248a3d');
+        if (typeNeedsSim(type)) return simStatusBadge(dateStr);
+        return ''; // sonstiges or unknown → no badge
+    }
+
     function simStatusBadge(dateStr) {
         let label, bg, color;
         if (!dateStr) {
@@ -30,7 +46,7 @@
             else if (diffDays <= 7) { label = 'Läuft ab'; bg = 'rgba(255,204,0,.25)'; color = '#b8860b'; }
             else { label = 'Guthaben'; bg = 'rgba(52,199,89,.18)'; color = '#248a3d'; }
         }
-        return `<span style="font-size:0.6875rem;font-weight:600;padding:0.125rem 0.5rem;border-radius:999px;background:${bg};color:${color};white-space:nowrap;">${label}</span>`;
+        return pill(label, bg, color);
     }
 
     async function apiCall(url, opts = {}) {
@@ -54,18 +70,19 @@
             return;
         }
         listEl.innerHTML = items.map(item => {
+            const typeLabel = TYPE_LABELS[item.equipmentType] || '';
             const locInfo = item.location ? '📍 ' + esc(item.location) : '';
             const userInfo = item.userName ? '👤 ' + esc(item.userName) : '';
             const commentInfo = item.comment ? esc(item.comment) : '';
-            const info = [locInfo, userInfo, commentInfo].filter(Boolean).join(' · ') || 'Keine Details';
+            const info = [typeLabel, locInfo, userInfo, commentInfo].filter(Boolean).join(' · ') || 'Keine Details';
             return `
             <div class="eq-card">
                 <div class="eq-info">
-                    <strong style="display:flex;align-items:center;gap:0.5rem;">${esc(item.displayName)}${simStatusBadge(item.simExpiryDate)}</strong>
+                    <strong style="display:flex;align-items:center;gap:0.5rem;">${esc(item.displayName)}${statusBadge(item.equipmentType, item.simExpiryDate)}</strong>
                     <small>${info}</small>
                 </div>
                 <div class="eq-actions">
-                    <button class="btn btn-secondary btn-sm" onclick="EQ.edit('${esc(item.rowKey)}','${esc(item.displayName)}','${esc(item.comment || '')}','${esc(item.userName || '')}','${esc(item.location || '')}',${item.latitude || 0},${item.longitude || 0},'${esc(item.phoneNumber || '')}','${esc(item.simExpiryDate || '')}')">Details</button>
+                    <button class="btn btn-secondary btn-sm" onclick="EQ.edit('${esc(item.rowKey)}','${esc(item.displayName)}','${esc(item.equipmentType || '')}','${esc(item.comment || '')}','${esc(item.userName || '')}','${esc(item.location || '')}',${item.latitude || 0},${item.longitude || 0},'${esc(item.phoneNumber || '')}','${esc(item.simExpiryDate || '')}')">Details</button>
                 </div>
             </div>`;
         }).join('');
@@ -75,6 +92,7 @@
     if (roleLevel >= 3) {
         document.getElementById('addBtn').addEventListener('click', () => {
             document.getElementById('newEqName').value = '';
+            document.getElementById('newEqType').value = 'falle';
             document.getElementById('newEqComment').value = '';
             hideError('createEqError');
             openModal(createModal);
@@ -93,6 +111,7 @@
             headers: { ...FT_AUTH.adminHeaders(), 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 displayName,
+                equipmentType: document.getElementById('newEqType').value,
                 comment: document.getElementById('newEqComment').value.trim() || null
             })
         });
@@ -224,9 +243,10 @@
     /* ── Edit ─────────────────────────────────── */
     let editTarget = '';
     window.EQ = window.EQ || {};
-    EQ.edit = function (rowKey, displayName, comment, userName, location, lat, lng, phoneNumber, simExpiryDate) {
+    EQ.edit = function (rowKey, displayName, equipmentType, comment, userName, location, lat, lng, phoneNumber, simExpiryDate) {
         editTarget = rowKey;
         document.getElementById('editEqName').value = displayName;
+        document.getElementById('editEqType').value = equipmentType || 'sonstiges';
         document.getElementById('editEqComment').value = comment || '';
         document.getElementById('editEqLocation').value = location;
         document.getElementById('editEqLat').value = lat || '';
@@ -235,9 +255,12 @@
         document.getElementById('editEqPhone').value = phoneNumber || '';
         document.getElementById('editEqSimExpiry').value = simExpiryDate || '';
         hideError('editEqError');
-        // Disable name/comment for PowerUser
+        // Disable name/comment/type for PowerUser
         document.getElementById('editEqName').disabled = roleLevel < 3;
         document.getElementById('editEqComment').disabled = roleLevel < 3;
+        document.getElementById('editEqType').disabled = roleLevel < 3;
+        // Show SIM field only for relevant types
+        updateSimRowVisibility();
         // Delete only for Manager+
         document.getElementById('editEqDelete').style.display = roleLevel >= 3 ? '' : 'none';
         // Reset to "Ort" mode, clear caches
@@ -246,6 +269,12 @@
         setMode('ort');
         openModal(editModal);
     };
+
+    function updateSimRowVisibility() {
+        const type = document.getElementById('editEqType').value;
+        document.getElementById('editEqSimRow').style.display = typeNeedsSim(type) ? '' : 'none';
+    }
+    document.getElementById('editEqType').addEventListener('change', updateSimRowVisibility);
     document.getElementById('editEqCancel').addEventListener('click', () => closeModal(editModal));
     document.getElementById('editEqSave').addEventListener('click', async () => {
         const displayName = document.getElementById('editEqName').value.trim();
@@ -257,18 +286,20 @@
         }
         const btn = document.getElementById('editEqSave');
         btn.disabled = true;
+        const eqType = document.getElementById('editEqType').value;
         const res = await apiCall(`${API}/manage/equipment/${encodeURIComponent(editTarget)}`, {
             method: 'PUT',
             headers: { ...FT_AUTH.adminHeaders(), 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 displayName,
+                equipmentType: eqType,
                 comment: document.getElementById('editEqComment').value.trim() || null,
                 userName: document.getElementById('editEqUserName').value.trim() || null,
                 location: document.getElementById('editEqLocation').value.trim() || null,
                 latitude: parseFloat(document.getElementById('editEqLat').value) || null,
                 longitude: parseFloat(document.getElementById('editEqLng').value) || null,
                 phoneNumber: phoneNumber || '',
-                simExpiryDate: document.getElementById('editEqSimExpiry').value.trim() || ''
+                simExpiryDate: typeNeedsSim(eqType) ? (document.getElementById('editEqSimExpiry').value.trim() || '') : ''
             })
         });
         btn.disabled = false;

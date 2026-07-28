@@ -55,6 +55,7 @@ public class EquipmentFunction
                 {
                     rowKey = entity.RowKey,
                     displayName = entity.GetString("DisplayName") ?? "",
+                    equipmentType = entity.GetString("EquipmentType") ?? "",
                     comment = entity.GetString("Comment") ?? "",
                     userName = entity.GetString("UserName") ?? "",
                     location = entity.GetString("Location") ?? "",
@@ -151,6 +152,9 @@ public class EquipmentFunction
             if (body is null || string.IsNullOrWhiteSpace(body.DisplayName))
                 return new BadRequestObjectResult(new { error = "Bezeichnung erforderlich" });
 
+            if (!string.IsNullOrWhiteSpace(body.EquipmentType) && !IsValidType(body.EquipmentType.Trim()))
+                return new BadRequestObjectResult(new { error = "Ungültiger Equipment-Typ" });
+
             if (!string.IsNullOrWhiteSpace(body.PhoneNumber) && !IsValidE164(body.PhoneNumber.Trim()))
                 return new BadRequestObjectResult(new { error = "Telefonnummer muss im E.164-Format sein (z. B. +491234567890)" });
 
@@ -166,6 +170,8 @@ public class EquipmentFunction
                 { "DisplayName", InputSanitizer.StripHtml(body.DisplayName.Trim()) }
             };
 
+            if (!string.IsNullOrWhiteSpace(body.EquipmentType))
+                entity["EquipmentType"] = body.EquipmentType.Trim();
             if (!string.IsNullOrWhiteSpace(body.Comment))
                 entity["Comment"] = InputSanitizer.StripHtml(body.Comment.Trim());
             if (!string.IsNullOrWhiteSpace(body.UserName))
@@ -215,6 +221,9 @@ public class EquipmentFunction
             if (body is null)
                 return new BadRequestObjectResult(new { error = "Daten erforderlich" });
 
+            if (!string.IsNullOrWhiteSpace(body.EquipmentType) && !IsValidType(body.EquipmentType.Trim()))
+                return new BadRequestObjectResult(new { error = "Ungültiger Equipment-Typ" });
+
             if (!string.IsNullOrWhiteSpace(body.PhoneNumber) && !IsValidE164(body.PhoneNumber.Trim()))
                 return new BadRequestObjectResult(new { error = "Telefonnummer muss im E.164-Format sein (z. B. +491234567890)" });
 
@@ -232,6 +241,8 @@ public class EquipmentFunction
                     entity["DisplayName"] = InputSanitizer.StripHtml(body.DisplayName.Trim());
                 if (body.Comment is not null)
                     entity["Comment"] = InputSanitizer.StripHtml(body.Comment.Trim());
+                if (body.EquipmentType is not null)
+                    entity["EquipmentType"] = body.EquipmentType.Trim();
             }
 
             if (body.UserName is not null)
@@ -299,6 +310,13 @@ public class EquipmentFunction
 
     private static bool IsValidE164(string value) => E164Regex.IsMatch(value);
 
+    private static readonly HashSet<string> AllowedTypes = new(StringComparer.Ordinal)
+    {
+        "falle", "kamera_abo", "kamera_sim", "sonstiges"
+    };
+
+    private static bool IsValidType(string value) => AllowedTypes.Contains(value);
+
     private static bool IsValidIsoDate(string value) =>
         DateOnly.TryParseExact(value, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture,
             System.Globalization.DateTimeStyles.None, out _);
@@ -306,6 +324,7 @@ public class EquipmentFunction
     private record EquipmentRequest
     {
         public string? DisplayName { get; init; }
+        public string? EquipmentType { get; init; }
         public string? Comment { get; init; }
         public string? UserName { get; init; }
         public string? Location { get; init; }

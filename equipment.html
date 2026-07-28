@@ -36,6 +36,12 @@
         .modal input[type="date"] {
             -webkit-appearance: none; appearance: none;
         }
+        .modal select {
+            width: 100%; padding: 0.75rem 1rem; font-size: 1rem;
+            border: 1px solid #d2d2d7; border-radius: 10px; outline: none;
+            margin-bottom: 0.75rem; box-sizing: border-box; background: #fff;
+        }
+        .modal select:focus { border-color: #0071e3; box-shadow: 0 0 0 3px rgba(0,113,227,.15); }
         .modal input:focus { border-color: #0071e3; box-shadow: 0 0 0 3px rgba(0,113,227,.15); }
         .modal-buttons { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.5rem; }
         .modal-error { color: #ff3b30; font-size: 0.875rem; margin-top: 0.25rem; display: none; }
@@ -65,6 +71,13 @@
         <div class="modal">
             <h3>Neues Equipment</h3>
             <input type="text" id="newEqName" placeholder="Bezeichnung" autocomplete="off">
+            <label for="newEqType" style="display:block;font-size:0.8125rem;color:#6e6e73;margin-bottom:0.25rem;">Typ</label>
+            <select id="newEqType">
+                <option value="falle">Falle</option>
+                <option value="kamera_abo">Kamera (Abo)</option>
+                <option value="kamera_sim">Kamera (SIM)</option>
+                <option value="sonstiges">Sonstiges</option>
+            </select>
             <input type="text" id="newEqComment" placeholder="Kommentar (optional)" autocomplete="off" maxlength="100">
             <p class="modal-error" id="createEqError"></p>
             <div class="modal-buttons">
@@ -79,6 +92,13 @@
         <div class="modal">
             <h3>Equipment bearbeiten</h3>
             <input type="text" id="editEqName" placeholder="Bezeichnung" autocomplete="off">
+            <label for="editEqType" style="display:block;font-size:0.8125rem;color:#6e6e73;margin-bottom:0.25rem;">Typ</label>
+            <select id="editEqType">
+                <option value="falle">Falle</option>
+                <option value="kamera_abo">Kamera (Abo)</option>
+                <option value="kamera_sim">Kamera (SIM)</option>
+                <option value="sonstiges">Sonstiges</option>
+            </select>
             <input type="text" id="editEqComment" placeholder="Kommentar (optional)" autocomplete="off" maxlength="100">
 
             <!-- Location mode selector -->
@@ -117,8 +137,10 @@
             <label for="editEqPhone" style="display:block;font-size:0.8125rem;color:#6e6e73;margin-bottom:0.25rem;">Telefonnummer</label>
             <input type="tel" id="editEqPhone" placeholder="+491234567890" autocomplete="off" inputmode="tel">
 
-            <label for="editEqSimExpiry" style="display:block;font-size:0.8125rem;color:#6e6e73;margin-bottom:0.25rem;">Ablauf SIM-Aufladung</label>
-            <input type="date" id="editEqSimExpiry">
+            <div id="editEqSimRow">
+                <label for="editEqSimExpiry" style="display:block;font-size:0.8125rem;color:#6e6e73;margin-bottom:0.25rem;">Ablauf SIM-Aufladung</label>
+                <input type="date" id="editEqSimExpiry">
+            </div>
 
             <input type="hidden" id="editEqLat">
             <input type="hidden" id="editEqLng">
