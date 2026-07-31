@@ -280,6 +280,7 @@
     function updateSimRowVisibility() {
         const type = document.getElementById('editEqType').value;
         document.getElementById('editEqSimRow').style.display = typeNeedsSim(type) ? '' : 'none';
+        document.getElementById('editEqSmsRow').style.display = (type === 'falle' && roleLevel >= 3) ? '' : 'none';
     }
     function updateUidRowVisibility() {
         const type = document.getElementById('editEqType').value;
@@ -324,6 +325,13 @@
         }
         window.open('https://www.congstaraufladen.de/shop/topup/congstar', '_blank', 'noopener');
     });
+    function sendSms(text) {
+        const phone = document.getElementById('editEqPhone').value.trim();
+        if (!phone) { showToast('Keine Rufnummer hinterlegt', false); return; }
+        window.location.href = 'sms:' + encodeURIComponent(phone) + '?&body=' + encodeURIComponent(text);
+    }
+    document.getElementById('editEqSmsArm').addEventListener('click', () => sendSms('1234#OFF#'));
+    document.getElementById('editEqSmsDisarm').addEventListener('click', () => sendSms('1234#ON#'));
     document.getElementById('editEqCancel').addEventListener('click', () => closeModal(editModal));
     document.getElementById('editEqSave').addEventListener('click', async () => {
         const displayName = document.getElementById('editEqName').value.trim();
