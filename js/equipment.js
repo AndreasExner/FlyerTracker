@@ -275,6 +275,20 @@
         document.getElementById('editEqSimRow').style.display = typeNeedsSim(type) ? '' : 'none';
     }
     document.getElementById('editEqType').addEventListener('change', updateSimRowVisibility);
+    document.getElementById('editEqTopup').addEventListener('click', async () => {
+        const phone = document.getElementById('editEqPhone').value.trim();
+        if (phone) {
+            try {
+                await navigator.clipboard.writeText(phone);
+                showToast('Rufnummer kopiert: ' + phone);
+            } catch {
+                showToast('Kopieren nicht möglich', false);
+            }
+        } else {
+            showToast('Keine Rufnummer hinterlegt', false);
+        }
+        window.open('https://www.congstaraufladen.de/shop/topup/congstar', '_blank', 'noopener');
+    });
     document.getElementById('editEqCancel').addEventListener('click', () => closeModal(editModal));
     document.getElementById('editEqSave').addEventListener('click', async () => {
         const displayName = document.getElementById('editEqName').value.trim();
