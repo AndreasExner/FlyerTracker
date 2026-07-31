@@ -22,6 +22,9 @@
     // SIM-Aufladung is only relevant for these types
     function typeNeedsSim(type) { return type === 'falle' || type === 'kamera_sim'; }
 
+    // UID field only relevant for cameras (Abo or SIM)
+    function typeIsCamera(type) { return type === 'kamera_abo' || type === 'kamera_sim'; }
+
     function pill(label, bg, color) {
         return `<span style="font-size:0.6875rem;font-weight:600;padding:0.125rem 0.5rem;border-radius:999px;background:${bg};color:${color};white-space:nowrap;">${label}</span>`;
     }
@@ -82,7 +85,7 @@
                     <small>${info}</small>
                 </div>
                 <div class="eq-actions">
-                    <button class="btn btn-secondary btn-sm" onclick="EQ.edit('${esc(item.rowKey)}','${esc(item.displayName)}','${esc(item.equipmentType || '')}','${esc(item.comment || '')}','${esc(item.userName || '')}','${esc(item.location || '')}',${item.latitude || 0},${item.longitude || 0},'${esc(item.phoneNumber || '')}','${esc(item.simExpiryDate || '')}')">Details</button>
+                    <button class="btn btn-secondary btn-sm" onclick="EQ.edit('${esc(item.rowKey)}','${esc(item.displayName)}','${esc(item.equipmentType || '')}','${esc(item.comment || '')}','${esc(item.userName || '')}','${esc(item.location || '')}',${item.latitude || 0},${item.longitude || 0},'${esc(item.phoneNumber || '')}','${esc(item.simExpiryDate || '')}','${esc(item.uid || '')}')">Details</button>
                 </div>
             </div>`;
         }).join('');
@@ -243,7 +246,7 @@
     /* ── Edit ─────────────────────────────────── */
     let editTarget = '';
     window.EQ = window.EQ || {};
-    EQ.edit = function (rowKey, displayName, equipmentType, comment, userName, location, lat, lng, phoneNumber, simExpiryDate) {
+    EQ.edit = function (rowKey, displayName, equipmentType, comment, userName, location, lat, lng, phoneNumber, simExpiryDate, uid) {
         editTarget = rowKey;
         document.getElementById('editEqName').value = displayName;
         document.getElementById('editEqType').value = equipmentType || 'sonstiges';
@@ -254,6 +257,7 @@
         document.getElementById('editEqUserName').value = userName || '';
         document.getElementById('editEqPhone').value = phoneNumber || '';
         document.getElementById('editEqSimExpiry').value = simExpiryDate || '';
+        document.getElementById('editEqUid').value = uid || '';
         hideError('editEqError');
         // Disable name/comment/type for PowerUser
         document.getElementById('editEqName').disabled = roleLevel < 3;
@@ -261,6 +265,8 @@
         document.getElementById('editEqType').disabled = roleLevel < 3;
         // Show SIM field only for relevant types
         updateSimRowVisibility();
+        // Show UID field only for cameras and Manager+
+        updateUidRowVisibility();
         // Delete only for Manager+
         document.getElementById('editEqDelete').style.display = roleLevel >= 3 ? '' : 'none';
         // Reset to "Ort" mode, clear caches
@@ -274,7 +280,14 @@
         const type = document.getElementById('editEqType').value;
         document.getElementById('editEqSimRow').style.display = typeNeedsSim(type) ? '' : 'none';
     }
-    document.getElementById('editEqType').addEventListener('change', updateSimRowVisibility);
+    function updateUidRowVisibility() {
+        const type = document.getElementById('editEqType').value;
+        document.getElementById('editEqUidRow').style.display = (typeIsCamera(type) && roleLevel >= 3) ? '' : 'none';
+    }
+    document.getElementById('editEqType').addEventListener('change', () => { updateSimRowVisibility(); updateUidRowVisibility(); });
+    document.getElementById('editEqUid').addEventListener('input', (e) => {
+        e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20);
+    });
     document.getElementById('editEqTopup').addEventListener('click', async () => {
         const phone = document.getElementById('editEqPhone').value.trim();
         if (phone) {
@@ -313,7 +326,8 @@
                 latitude: parseFloat(document.getElementById('editEqLat').value) || null,
                 longitude: parseFloat(document.getElementById('editEqLng').value) || null,
                 phoneNumber: phoneNumber || '',
-                simExpiryDate: typeNeedsSim(eqType) ? (document.getElementById('editEqSimExpiry').value.trim() || '') : ''
+                simExpiryDate: typeNeedsSim(eqType) ? (document.getElementById('editEqSimExpiry').value.trim() || '') : '',
+                uid: (typeIsCamera(eqType) && roleLevel >= 3) ? document.getElementById('editEqUid').value.trim().toUpperCase() : null
             })
         });
         btn.disabled = false;

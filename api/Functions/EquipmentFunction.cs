@@ -41,7 +41,8 @@ public class EquipmentFunction
             var ip = req.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
             if (!_rateLimit.Read.IsAllowed(ip))
                 return new ObjectResult(new { error = "Zu viele Anfragen. Bitte warten." }) { StatusCode = 429 };
-            if (await _adminAuth.ValidateTokenWithRole(req, 2) == 0)
+            var callerLevel = await _adminAuth.ValidateTokenWithRole(req, 2);
+            if (callerLevel == 0)
                 return AdminAuth.Forbidden();
 
             var table = _tableService.GetTableClient(TableName);
@@ -62,7 +63,9 @@ public class EquipmentFunction
                     latitude = entity.GetDouble("Latitude"),
                     longitude = entity.GetDouble("Longitude"),
                     phoneNumber = entity.GetString("PhoneNumber") ?? "",
-                    simExpiryDate = entity.GetString("SimExpiryDate") ?? ""
+                    simExpiryDate = entity.GetString("SimExpiryDate") ?? "",
+                    // UID only exposed to Manager+ (level >= 3)
+                    uid = callerLevel >= 3 ? (entity.GetString("Uid") ?? "") : ""
                 });
             }
 
@@ -161,6 +164,9 @@ public class EquipmentFunction
             if (!string.IsNullOrWhiteSpace(body.SimExpiryDate) && !IsValidIsoDate(body.SimExpiryDate.Trim()))
                 return new BadRequestObjectResult(new { error = "Datum muss im Format JJJJ-MM-TT sein" });
 
+            if (!string.IsNullOrWhiteSpace(body.Uid) && !IsValidUid(body.Uid.Trim().ToUpperInvariant()))
+                return new BadRequestObjectResult(new { error = "UID darf nur Großbuchstaben und Ziffern enthalten (max. 20 Zeichen)" });
+
             var table = _tableService.GetTableClient(TableName);
             await table.CreateIfNotExistsAsync();
 
@@ -186,6 +192,8 @@ public class EquipmentFunction
                 entity["PhoneNumber"] = body.PhoneNumber.Trim();
             if (!string.IsNullOrWhiteSpace(body.SimExpiryDate))
                 entity["SimExpiryDate"] = body.SimExpiryDate.Trim();
+            if (!string.IsNullOrWhiteSpace(body.Uid))
+                entity["Uid"] = body.Uid.Trim().ToUpperInvariant();
 
             await table.AddEntityAsync(entity);
             _logger.LogInformation("Equipment created: {Name}", body.DisplayName);
@@ -230,6 +238,9 @@ public class EquipmentFunction
             if (!string.IsNullOrWhiteSpace(body.SimExpiryDate) && !IsValidIsoDate(body.SimExpiryDate.Trim()))
                 return new BadRequestObjectResult(new { error = "Datum muss im Format JJJJ-MM-TT sein" });
 
+            if (!string.IsNullOrWhiteSpace(body.Uid) && !IsValidUid(body.Uid.Trim().ToUpperInvariant()))
+                return new BadRequestObjectResult(new { error = "UID darf nur Großbuchstaben und Ziffern enthalten (max. 20 Zeichen)" });
+
             var table = _tableService.GetTableClient(TableName);
             var response = await table.GetEntityAsync<TableEntity>(PK, rowKey);
             var entity = response.Value;
@@ -243,6 +254,9 @@ public class EquipmentFunction
                     entity["Comment"] = InputSanitizer.StripHtml(body.Comment.Trim());
                 if (body.EquipmentType is not null)
                     entity["EquipmentType"] = body.EquipmentType.Trim();
+                // UID is Manager+ only
+                if (body.Uid is not null)
+                    entity["Uid"] = body.Uid.Trim().ToUpperInvariant();
             }
 
             if (body.UserName is not null)
@@ -317,6 +331,10 @@ public class EquipmentFunction
 
     private static bool IsValidType(string value) => AllowedTypes.Contains(value);
 
+    private static readonly Regex UidRegex = new(@"^[A-Z0-9]{1,20}$", RegexOptions.Compiled);
+
+    private static bool IsValidUid(string value) => UidRegex.IsMatch(value);
+
     private static bool IsValidIsoDate(string value) =>
         DateOnly.TryParseExact(value, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture,
             System.Globalization.DateTimeStyles.None, out _);
@@ -332,5 +350,6 @@ public class EquipmentFunction
         public double? Longitude { get; init; }
         public string? PhoneNumber { get; init; }
         public string? SimExpiryDate { get; init; }
+        public string? Uid { get; init; }
     }
 }
