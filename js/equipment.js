@@ -288,6 +288,16 @@
     document.getElementById('editEqUid').addEventListener('input', (e) => {
         e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20);
     });
+    document.getElementById('editEqUid').addEventListener('click', async (e) => {
+        const uid = e.target.value.trim();
+        if (!uid) return;
+        try {
+            await navigator.clipboard.writeText(uid);
+            showToast('UID kopiert: ' + uid);
+        } catch {
+            showToast('Kopieren nicht möglich', false);
+        }
+    });
     document.getElementById('editEqTopup').addEventListener('click', async () => {
         const phone = document.getElementById('editEqPhone').value.trim();
         if (phone) {
