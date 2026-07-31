@@ -258,6 +258,7 @@
         document.getElementById('editEqPhone').value = phoneNumber || '';
         document.getElementById('editEqSimExpiry').value = simExpiryDate || '';
         document.getElementById('editEqUid').value = uid || '';
+        setUidEditable(false);
         hideError('editEqError');
         // Disable name/comment/type for PowerUser
         document.getElementById('editEqName').disabled = roleLevel < 3;
@@ -285,10 +286,21 @@
         document.getElementById('editEqUidRow').style.display = (typeIsCamera(type) && roleLevel >= 3) ? '' : 'none';
     }
     document.getElementById('editEqType').addEventListener('change', () => { updateSimRowVisibility(); updateUidRowVisibility(); });
+    function setUidEditable(editable) {
+        const input = document.getElementById('editEqUid');
+        const btn = document.getElementById('editEqUidEdit');
+        input.readOnly = !editable;
+        btn.textContent = editable ? 'Fertig' : 'Bearbeiten';
+        if (editable) { input.focus(); input.select(); }
+    }
+    document.getElementById('editEqUidEdit').addEventListener('click', () => {
+        setUidEditable(document.getElementById('editEqUid').readOnly);
+    });
     document.getElementById('editEqUid').addEventListener('input', (e) => {
         e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20);
     });
     document.getElementById('editEqUid').addEventListener('click', async (e) => {
+        if (!e.target.readOnly) return; // in edit mode: allow cursor placement, no copy
         const uid = e.target.value.trim();
         if (!uid) return;
         try {

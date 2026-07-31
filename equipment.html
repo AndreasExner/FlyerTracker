@@ -145,7 +145,10 @@
 
             <div id="editEqUidRow">
                 <label for="editEqUid" style="display:block;font-size:0.8125rem;color:#6e6e73;margin-bottom:0.25rem;">UID</label>
-                <input type="text" id="editEqUid" maxlength="20" autocomplete="off" placeholder="z. B. AB12CD34EF" style="text-transform:uppercase;">
+                <div style="display:flex;gap:0.5rem;align-items:center;">
+                    <input type="text" id="editEqUid" maxlength="20" autocomplete="off" placeholder="z. B. AB12CD34EF" style="text-transform:uppercase;flex:1;" readonly>
+                    <button type="button" class="btn btn-secondary btn-sm" id="editEqUidEdit" style="flex-shrink:0;">Bearbeiten</button>
+                </div>
             </div>
 
             <input type="hidden" id="editEqLat">
