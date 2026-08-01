@@ -8,9 +8,16 @@
     const legendEl = document.getElementById('legend');
     const toggleRoutesEl = document.getElementById('toggleRoutes');
     const toggleLocationEl = document.getElementById('toggleLocation');
-    const ownerFilterEl = document.getElementById('ownerFilter');
+    const catFilterBtn = document.getElementById('catFilterBtn');
+    const catFilterPanel = document.getElementById('catFilterPanel');
+    const catFilterList = document.getElementById('catFilterList');
     const toastEl = document.getElementById('toast');
     let toastTimeout = null;
+
+    // Category multi-select state (null until built from loaded records)
+    let selectedCats = null;
+    let catListBuilt = false;
+    const NO_CAT = 'Ohne Kategorie';
 
     const urlParams = new URLSearchParams(window.location.search);
     const filterDog = urlParams.get('lostDog') || '';
@@ -115,12 +122,15 @@
 
             const data = await res.json();
             const allRecords = data.records || [];
-            const showMine = ownerFilterEl.value === 'mine';
-            const records = showMine ? allRecords.filter(r => r.isOwner) : allRecords;
+            if (!catListBuilt) buildCatCheckboxes(allRecords);
+            const records = selectedCats
+                ? allRecords.filter(r => selectedCats.has(r.category || NO_CAT))
+                : allRecords;
 
             markerCountEl.textContent = `${records.length} Standort${records.length !== 1 ? 'e' : ''}`;
 
-            if (records.length === 0) { showToast('Keine GPS-Daten vorhanden', true); return; }
+            if (allRecords.length === 0) { showToast('Keine GPS-Daten vorhanden', true); return; }
+            if (records.length === 0) return;
 
             const dogRecords = {};
             const bounds = [];
@@ -197,12 +207,46 @@
     }
 
     // ── Start ────────────────────────────────────────────────────
-    loadAndDisplay();
-    ownerFilterEl.addEventListener('change', () => {
+    function refresh() {
         clusterGroup.clearLayers(); routesLayer.clearLayers(); legendEl.innerHTML = '';
         Object.keys(dogColorMap).forEach(k => delete dogColorMap[k]); colorIdx = 0;
         loadAndDisplay();
+    }
+
+    // ── Category multi-select filter ────────────────────
+    function buildCatCheckboxes(records) {
+        const cats = [...new Set(records.map(r => r.category || NO_CAT))].sort((a, b) => a.localeCompare(b, 'de'));
+        catFilterList.innerHTML = cats.length
+            ? cats.map(c => `<label><input type="checkbox" class="cat-cb" value="${escHtml(c)}" checked> ${escHtml(c)}</label>`).join('')
+            : '<span style="font-size:0.8rem;color:#6e6e73">Keine Kategorien</span>';
+        selectedCats = new Set(cats);
+        catListBuilt = true;
+        updateCatLabel();
+    }
+
+    function updateCatLabel() {
+        const total = catFilterList.querySelectorAll('.cat-cb').length;
+        const sel = selectedCats ? selectedCats.size : total;
+        catFilterBtn.textContent = (sel === total ? 'Kategorien: alle' : `Kategorien: ${sel}/${total}`) + ' ▾';
+    }
+
+    function readSelectedCats() {
+        selectedCats = new Set([...catFilterList.querySelectorAll('.cat-cb:checked')].map(cb => cb.value));
+        updateCatLabel();
+        refresh();
+    }
+
+    catFilterBtn.addEventListener('click', e => { e.stopPropagation(); catFilterPanel.classList.toggle('hidden'); });
+    document.addEventListener('click', e => { if (!e.target.closest('#catFilter')) catFilterPanel.classList.add('hidden'); });
+    catFilterList.addEventListener('change', e => { if (e.target.classList.contains('cat-cb')) readSelectedCats(); });
+    document.getElementById('catSelectAll').addEventListener('click', () => {
+        catFilterList.querySelectorAll('.cat-cb').forEach(cb => cb.checked = true); readSelectedCats();
     });
+    document.getElementById('catSelectNone').addEventListener('click', () => {
+        catFilterList.querySelectorAll('.cat-cb').forEach(cb => cb.checked = false); readSelectedCats();
+    });
+
+    loadAndDisplay();
 
     // ── Delete handler ───────────────────────────────────────────
     document.addEventListener('click', async e => {
