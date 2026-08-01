@@ -280,7 +280,7 @@
     function updateSimRowVisibility() {
         const type = document.getElementById('editEqType').value;
         document.getElementById('editEqSimRow').style.display = typeNeedsSim(type) ? '' : 'none';
-        document.getElementById('editEqSmsRow').style.display = (type === 'falle' && roleLevel >= 3) ? '' : 'none';
+        document.getElementById('editEqSmsRow').style.display = (type === 'falle' && roleLevel >= 3) ? 'flex' : 'none';
     }
     function updateUidRowVisibility() {
         const type = document.getElementById('editEqType').value;

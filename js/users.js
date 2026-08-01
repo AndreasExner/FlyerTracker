@@ -10,6 +10,7 @@
     const editUserModal   = document.getElementById('editUserModal');
 
     let currentUsername = '';
+    let allUsers = [];
 
     /* ── Helpers ──────────────────────────────── */
     function showToast(msg, ok = true) {
@@ -56,6 +57,7 @@
         if (!res) return;
         if (!res.ok) { showToast('Fehler beim Laden', false); return; }
         const users = await res.json();
+        allUsers = users;
         renderUsers(users);
     }
 
@@ -231,6 +233,42 @@
             showError('editUserError', data.error || 'Fehler beim Speichern.');
         }
     });
+    /* ── Role overview (grouped by role) ─────── */
+    const roleOverviewModal = document.getElementById('roleOverviewModal');
+    const ROLE_ORDER = ['Administrator', 'Manager', 'PowerUser', 'User'];
+
+    function renderRoleMembers() {
+        const val = document.getElementById('roleOverviewSelect').value;
+        const listEl = document.getElementById('roleOverviewList');
+        const members = (val === '__accountant__')
+            ? allUsers.filter(u => u.accountant)
+            : allUsers.filter(u => (u.role || 'User') === val);
+        if (!members.length) {
+            listEl.innerHTML = '<p style="color:#6e6e73;text-align:center;padding:1.5rem">Keine Mitglieder.</p>';
+            return;
+        }
+        members.sort((a, b) => (a.displayName || a.username).localeCompare(b.displayName || b.username, 'de'));
+        listEl.innerHTML = members.map(u => {
+            const roleTag = (val === '__accountant__') ? ' · ' + esc(u.role || 'User') : '';
+            return `<div class="role-member"><strong>${esc(u.displayName || u.username)}</strong><small>@${esc(u.username)}${roleTag}</small></div>`;
+        }).join('');
+    }
+
+    document.getElementById('roleOverviewBtn').addEventListener('click', () => {
+        const sel = document.getElementById('roleOverviewSelect');
+        const counts = {};
+        ROLE_ORDER.forEach(r => counts[r] = allUsers.filter(u => (u.role || 'User') === r).length);
+        const accCount = allUsers.filter(u => u.accountant).length;
+        sel.innerHTML =
+            ROLE_ORDER.map(r => `<option value="${r}">${r} (${counts[r]})</option>`).join('') +
+            `<option value="__accountant__">Buchhalter (${accCount})</option>`;
+        sel.value = 'Administrator';
+        renderRoleMembers();
+        openModal(roleOverviewModal);
+    });
+    document.getElementById('roleOverviewSelect').addEventListener('change', renderRoleMembers);
+    document.getElementById('roleOverviewClose').addEventListener('click', () => closeModal(roleOverviewModal));
+
     /* ── Init ────────────────────────────────── */
     loadCurrentUser().then(() => loadUsers());
     /* ── Location search (Nominatim, city-level) ── */

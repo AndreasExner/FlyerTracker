@@ -39,6 +39,11 @@
         .modal-error { color: #ff3b30; font-size: 0.875rem; margin-top: 0.25rem; display: none; }
 
         .section-title { font-size: 1rem; font-weight: 600; color: #6e6e73; margin: 1.5rem 0 0.75rem; }
+
+        #roleOverviewList { max-height: 50vh; overflow-y: auto; margin-bottom: 0.5rem; }
+        .role-member { padding: 0.6rem 0.75rem; border: 1px solid #e8e8ed; border-radius: 8px; margin-bottom: 0.4rem; }
+        .role-member strong { display: block; font-size: 0.95rem; }
+        .role-member small { color: #6e6e73; font-size: 0.8rem; }
     </style>
 </head>
 <body>
@@ -53,6 +58,7 @@
         <p class="section-title">Alle Benutzer</p>
         <div class="add-row">
             <button class="btn btn-primary" id="addUserBtn">+ Neuen Benutzer anlegen</button>
+            <button class="btn btn-secondary" id="roleOverviewBtn">Rollenübersicht</button>
         </div>
         <div id="userList"></div>
 
@@ -85,6 +91,18 @@
             <div class="modal-buttons">
                 <button class="btn btn-secondary btn-sm" id="createUserCancel">Abbrechen</button>
                 <button class="btn btn-primary btn-sm" id="createUserSave">Anlegen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Role overview -->
+    <div class="modal-overlay" id="roleOverviewModal">
+        <div class="modal">
+            <h3>Rollenübersicht</h3>
+            <select id="roleOverviewSelect" style="width:100%;padding:0.75rem 1rem;font-size:1rem;border:1px solid #d2d2d7;border-radius:10px;outline:none;margin-bottom:1rem;"></select>
+            <div id="roleOverviewList"></div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary btn-sm" id="roleOverviewClose">Schließen</button>
             </div>
         </div>
     </div>
