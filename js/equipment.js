@@ -194,7 +194,7 @@
         const catRes = await apiCall(`${API}/categories`, { headers: FT_AUTH.publicHeaders() });
         if (!catRes || !catRes.ok) { einsatzSelect.innerHTML = '<option value="">Fehler beim Laden</option>'; return; }
         const categories = await catRes.json();
-        const targetNames = ['Standort-Falle', 'Futterstelle/Kamera', 'Entlaufort'];
+        const targetNames = ['Standort-Falle', 'Futterstelle/Kamera', 'Entlauf-Ort'];
         const targetKeys = categories.filter(c => targetNames.includes(c.displayName)).map(c => c.rowKey);
 
         if (targetKeys.length === 0) {
