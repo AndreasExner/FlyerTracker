@@ -208,8 +208,14 @@
         const gpsRes = await apiCall(`${API}/manage/gps-records?pageSize=all&category=${encodeURIComponent(categoryParam)}`, { headers: FT_AUTH.adminHeaders() });
         if (!gpsRes || !gpsRes.ok) { einsatzSelect.innerHTML = '<option value="">Fehler beim Laden</option>'; return; }
         const data = await gpsRes.json();
-        cachedEinsatzRecords = (data.records || []).filter(r => r.location && r.latitude && r.longitude);
+        cachedEinsatzRecords = (data.records || []).filter(r => r.latitude && r.longitude);
         renderEinsatzOptions();
+    }
+
+    /* Build a readable location label even when the GPS record has no address text */
+    function einsatzLabel(r) {
+        return r.location || [r.category, r.comment].filter(Boolean).join(' – ')
+            || `${Number(r.latitude).toFixed(5)}, ${Number(r.longitude).toFixed(5)}`;
     }
 
     function renderEinsatzOptions() {
@@ -217,7 +223,7 @@
         cachedEinsatzRecords.forEach((r, i) => {
             const opt = document.createElement('option');
             opt.value = i;
-            opt.textContent = `${r.lostDog || '–'} — ${r.location}`;
+            opt.textContent = [r.lostDog || '–', r.category, r.comment].filter(Boolean).join(' · ');
             einsatzSelect.appendChild(opt);
         });
     }
@@ -226,11 +232,12 @@
         const idx = einsatzSelect.value;
         if (idx === '') { clearLocationFields(); return; }
         const r = cachedEinsatzRecords[parseInt(idx)];
-        document.getElementById('editEqLocation').value = r.location;
+        const label = einsatzLabel(r);
+        document.getElementById('editEqLocation').value = label;
         document.getElementById('editEqLat').value = r.latitude;
         document.getElementById('editEqLng').value = r.longitude;
         document.getElementById('editEqUserName').value = r.lostDog || '';
-        resolvedLocEl.textContent = `📍 ${r.location} (${r.lostDog || '–'})`;
+        resolvedLocEl.textContent = `📍 ${label} (${r.lostDog || '–'})`;
         resolvedLocEl.style.display = '';
     });
 
