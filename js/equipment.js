@@ -275,6 +275,8 @@
         updateSimRowVisibility();
         // Show UID field only for cameras and Manager+
         updateUidRowVisibility();
+        // Phone field not needed for Kamera (Abo)
+        updatePhoneRowVisibility();
         // Delete only for Manager+
         document.getElementById('editEqDelete').style.display = roleLevel >= 3 ? '' : 'none';
         // Reset to "Ort" mode, clear caches
@@ -293,7 +295,11 @@
         const type = document.getElementById('editEqType').value;
         document.getElementById('editEqUidRow').style.display = (typeIsCamera(type) && roleLevel >= 3) ? '' : 'none';
     }
-    document.getElementById('editEqType').addEventListener('change', () => { updateSimRowVisibility(); updateUidRowVisibility(); });
+    function updatePhoneRowVisibility() {
+        const type = document.getElementById('editEqType').value;
+        document.getElementById('editEqPhoneRow').style.display = (type === 'kamera_abo') ? 'none' : '';
+    }
+    document.getElementById('editEqType').addEventListener('change', () => { updateSimRowVisibility(); updateUidRowVisibility(); updatePhoneRowVisibility(); });
     function setUidEditable(editable) {
         const input = document.getElementById('editEqUid');
         const btn = document.getElementById('editEqUidEdit');
