@@ -133,6 +133,8 @@ html, body {
 .btn-primary:hover { background: var(--accent-hover); }
 .btn-danger  { background: var(--danger); color: #fff; }
 .btn-danger:hover  { background: #d32f2f; }
+.btn-success { background: #2e7d32; color: #fff; }
+.btn-success:hover { background: #256628; }
 .btn-secondary { background: var(--bg-badge); color: var(--text-primary); }
 .btn-secondary:hover { background: var(--border-color); }
 .btn-sm { padding: 0.5rem 0.75rem; font-size: 0.8125rem; }
