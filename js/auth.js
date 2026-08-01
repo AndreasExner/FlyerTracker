@@ -18,7 +18,7 @@ const FT_AUTH = (function () {
 
     /** Headers for admin fetch calls (includes Bearer token) */
     function adminHeaders(extra) {
-        const token = sessionStorage.getItem(TOKEN_KEY);
+        const token = localStorage.getItem(TOKEN_KEY);
         return Object.assign({
             'X-API-Key': API_KEY,
             'X-Admin-Token': token || ''
@@ -42,17 +42,17 @@ const FT_AUTH = (function () {
             const data = await res.json();
             if (data.token) {
                 try {
-                    sessionStorage.setItem(TOKEN_KEY, data.token);
-                    if (data.role) sessionStorage.setItem(ROLE_KEY, data.role);
-                    if (data.accountant) sessionStorage.setItem('lostdogtracer_accountant', '1');
-                    else sessionStorage.removeItem('lostdogtracer_accountant');
+                    localStorage.setItem(TOKEN_KEY, data.token);
+                    if (data.role) localStorage.setItem(ROLE_KEY, data.role);
+                    if (data.accountant) localStorage.setItem('lostdogtracer_accountant', '1');
+                    else localStorage.removeItem('lostdogtracer_accountant');
                     // Verify it was actually stored
-                    if (!sessionStorage.getItem(TOKEN_KEY)) {
-                        login._lastDebug = 'sessionStorage: Token konnte nicht gespeichert werden';
+                    if (!localStorage.getItem(TOKEN_KEY)) {
+                        login._lastDebug = 'localStorage: Token konnte nicht gespeichert werden';
                         return null;
                     }
                 } catch (e) {
-                    login._lastDebug = 'sessionStorage blockiert: ' + e.message;
+                    login._lastDebug = 'localStorage blockiert: ' + e.message;
                     return null;
                 }
                 return data.token;
@@ -68,7 +68,7 @@ const FT_AUTH = (function () {
 
     /** Check if admin token exists and is valid (calls /auth/verify) */
     async function isLoggedIn() {
-        const token = sessionStorage.getItem(TOKEN_KEY);
+        const token = localStorage.getItem(TOKEN_KEY);
         if (!token) return false;
         if (!navigator.onLine) return true; // Offline: trust cached token
         try {
@@ -82,14 +82,14 @@ const FT_AUTH = (function () {
     }
 
     function logout() {
-        sessionStorage.removeItem(TOKEN_KEY);
-        sessionStorage.removeItem(ROLE_KEY);
-        sessionStorage.removeItem('lostdogtracer_accountant');
+        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(ROLE_KEY);
+        localStorage.removeItem('lostdogtracer_accountant');
     }
 
     /** Get cached role string */
     function getRole() {
-        return sessionStorage.getItem(ROLE_KEY) || 'User';
+        return localStorage.getItem(ROLE_KEY) || 'User';
     }
 
     /** Get numeric role level: User=1, Manager=2, Administrator=3 */
@@ -124,7 +124,7 @@ const FT_AUTH = (function () {
     function getApiBase() { return API_BASE; }
 
     function isAccountant() {
-        return sessionStorage.getItem('lostdogtracer_accountant') === '1';
+        return localStorage.getItem('lostdogtracer_accountant') === '1';
     }
 
     return { publicHeaders, adminHeaders, login, isLoggedIn, logout, sessionExpired, getApiBase, getRole, getRoleLevel, requireRole, isAccountant };

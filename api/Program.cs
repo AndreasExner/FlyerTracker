@@ -30,7 +30,7 @@ var host = new HostBuilder()
         services.AddSingleton(sp =>
         {
             var tableService = sp.GetRequiredService<TableServiceClient>();
-            return new AdminAuth(tableService, tokenSecret, seedUser, seedPass);
+            return new AdminAuth(tableService, tokenSecret, seedUser, seedPass, TimeSpan.FromHours(48));
         });
     })
     .Build();
