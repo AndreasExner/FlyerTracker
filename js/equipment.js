@@ -19,6 +19,9 @@
 
     const TYPE_LABELS = { falle: 'Falle', kamera_abo: 'Kamera (Abo)', kamera_sim: 'Kamera (SIM)', sonstiges: 'Sonstiges' };
 
+    const DEFAULT_SMS_ARM = '1234#ON#';
+    const DEFAULT_SMS_DISARM = '1234#OFF#';
+
     // SIM-Aufladung is only relevant for these types
     function typeNeedsSim(type) { return type === 'falle' || type === 'kamera_sim'; }
 
@@ -85,7 +88,7 @@
                     <small>${info}</small>
                 </div>
                 <div class="eq-actions">
-                    <button class="btn btn-secondary btn-sm" onclick="EQ.edit('${esc(item.rowKey)}','${esc(item.displayName)}','${esc(item.equipmentType || '')}','${esc(item.comment || '')}','${esc(item.userName || '')}','${esc(item.location || '')}',${item.latitude || 0},${item.longitude || 0},'${esc(item.phoneNumber || '')}','${esc(item.simExpiryDate || '')}','${esc(item.uid || '')}')">Details</button>
+                    <button class="btn btn-secondary btn-sm" onclick="EQ.edit('${esc(item.rowKey)}','${esc(item.displayName)}','${esc(item.equipmentType || '')}','${esc(item.comment || '')}','${esc(item.userName || '')}','${esc(item.location || '')}',${item.latitude || 0},${item.longitude || 0},'${esc(item.phoneNumber || '')}','${esc(item.simExpiryDate || '')}','${esc(item.uid || '')}','${esc(item.smsArmCommand || '')}','${esc(item.smsDisarmCommand || '')}')">Details</button>
                 </div>
             </div>`;
         }).join('');
@@ -253,7 +256,7 @@
     /* ── Edit ─────────────────────────────────── */
     let editTarget = '';
     window.EQ = window.EQ || {};
-    EQ.edit = function (rowKey, displayName, equipmentType, comment, userName, location, lat, lng, phoneNumber, simExpiryDate, uid) {
+    EQ.edit = function (rowKey, displayName, equipmentType, comment, userName, location, lat, lng, phoneNumber, simExpiryDate, uid, smsArmCommand, smsDisarmCommand) {
         editTarget = rowKey;
         document.getElementById('editEqName').value = displayName;
         document.getElementById('editEqType').value = equipmentType || 'sonstiges';
@@ -265,6 +268,9 @@
         document.getElementById('editEqPhone').value = phoneNumber || '';
         document.getElementById('editEqSimExpiry').value = simExpiryDate || '';
         document.getElementById('editEqUid').value = uid || '';
+        document.getElementById('editEqSmsArmCmd').value = smsArmCommand || DEFAULT_SMS_ARM;
+        document.getElementById('editEqSmsDisarmCmd').value = smsDisarmCommand || DEFAULT_SMS_DISARM;
+        document.getElementById('editEqSmsCfgFields').style.display = 'none';
         setUidEditable(false);
         hideError('editEqError');
         // Disable name/comment/type for PowerUser
@@ -290,6 +296,7 @@
         const type = document.getElementById('editEqType').value;
         document.getElementById('editEqSimRow').style.display = typeNeedsSim(type) ? '' : 'none';
         document.getElementById('editEqSmsRow').style.display = (type === 'falle' && roleLevel >= 3) ? 'flex' : 'none';
+        document.getElementById('editEqSmsCfgRow').style.display = (type === 'falle' && roleLevel >= 4) ? '' : 'none';
     }
     function updateUidRowVisibility() {
         const type = document.getElementById('editEqType').value;
@@ -343,8 +350,14 @@
         if (!phone) { showToast('Keine Rufnummer hinterlegt', false); return; }
         window.location.href = 'sms:' + encodeURIComponent(phone) + '?&body=' + encodeURIComponent(text);
     }
-    document.getElementById('editEqSmsArm').addEventListener('click', () => sendSms('1234#OFF#'));
-    document.getElementById('editEqSmsDisarm').addEventListener('click', () => sendSms('1234#ON#'));
+    document.getElementById('editEqSmsCfgToggle').addEventListener('click', () => {
+        const f = document.getElementById('editEqSmsCfgFields');
+        f.style.display = f.style.display === 'none' ? '' : 'none';
+    });
+    document.getElementById('editEqSmsArm').addEventListener('click', () =>
+        sendSms(document.getElementById('editEqSmsArmCmd').value.trim() || DEFAULT_SMS_ARM));
+    document.getElementById('editEqSmsDisarm').addEventListener('click', () =>
+        sendSms(document.getElementById('editEqSmsDisarmCmd').value.trim() || DEFAULT_SMS_DISARM));
     document.getElementById('editEqCancel').addEventListener('click', () => closeModal(editModal));
     document.getElementById('editEqSave').addEventListener('click', async () => {
         const displayName = document.getElementById('editEqName').value.trim();
@@ -357,6 +370,7 @@
         const btn = document.getElementById('editEqSave');
         btn.disabled = true;
         const eqType = document.getElementById('editEqType').value;
+        const smsEditable = eqType === 'falle' && roleLevel >= 4;
         const res = await apiCall(`${API}/manage/equipment/${encodeURIComponent(editTarget)}`, {
             method: 'PUT',
             headers: { ...FT_AUTH.adminHeaders(), 'Content-Type': 'application/json' },
@@ -370,7 +384,9 @@
                 longitude: parseFloat(document.getElementById('editEqLng').value) || null,
                 phoneNumber: phoneNumber || '',
                 simExpiryDate: typeNeedsSim(eqType) ? (document.getElementById('editEqSimExpiry').value.trim() || '') : '',
-                uid: (typeIsCamera(eqType) && roleLevel >= 3) ? document.getElementById('editEqUid').value.trim().toUpperCase() : null
+                uid: (typeIsCamera(eqType) && roleLevel >= 3) ? document.getElementById('editEqUid').value.trim().toUpperCase() : null,
+                smsArmCommand: smsEditable ? (document.getElementById('editEqSmsArmCmd').value.trim() || DEFAULT_SMS_ARM) : null,
+                smsDisarmCommand: smsEditable ? (document.getElementById('editEqSmsDisarmCmd').value.trim() || DEFAULT_SMS_DISARM) : null
             })
         });
         btn.disabled = false;

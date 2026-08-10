@@ -65,7 +65,10 @@ public class EquipmentFunction
                     phoneNumber = entity.GetString("PhoneNumber") ?? "",
                     simExpiryDate = entity.GetString("SimExpiryDate") ?? "",
                     // UID only exposed to Manager+ (level >= 3)
-                    uid = callerLevel >= 3 ? (entity.GetString("Uid") ?? "") : ""
+                    uid = callerLevel >= 3 ? (entity.GetString("Uid") ?? "") : "",
+                    // SMS control commands only exposed to Manager+ (level >= 3)
+                    smsArmCommand = callerLevel >= 3 ? (entity.GetString("SmsArmCommand") ?? "") : "",
+                    smsDisarmCommand = callerLevel >= 3 ? (entity.GetString("SmsDisarmCommand") ?? "") : ""
                 });
             }
 
@@ -167,6 +170,12 @@ public class EquipmentFunction
             if (!string.IsNullOrWhiteSpace(body.Uid) && !IsValidUid(body.Uid.Trim().ToUpperInvariant()))
                 return new BadRequestObjectResult(new { error = "UID darf nur Großbuchstaben und Ziffern enthalten (max. 20 Zeichen)" });
 
+            if (!string.IsNullOrWhiteSpace(body.SmsArmCommand) && !IsValidSmsCommand(body.SmsArmCommand.Trim()))
+                return new BadRequestObjectResult(new { error = SmsCommandError });
+
+            if (!string.IsNullOrWhiteSpace(body.SmsDisarmCommand) && !IsValidSmsCommand(body.SmsDisarmCommand.Trim()))
+                return new BadRequestObjectResult(new { error = SmsCommandError });
+
             var table = _tableService.GetTableClient(TableName);
             await table.CreateIfNotExistsAsync();
 
@@ -194,6 +203,10 @@ public class EquipmentFunction
                 entity["SimExpiryDate"] = body.SimExpiryDate.Trim();
             if (!string.IsNullOrWhiteSpace(body.Uid))
                 entity["Uid"] = body.Uid.Trim().ToUpperInvariant();
+            if (!string.IsNullOrWhiteSpace(body.SmsArmCommand))
+                entity["SmsArmCommand"] = body.SmsArmCommand.Trim();
+            if (!string.IsNullOrWhiteSpace(body.SmsDisarmCommand))
+                entity["SmsDisarmCommand"] = body.SmsDisarmCommand.Trim();
 
             await table.AddEntityAsync(entity);
             _logger.LogInformation("Equipment created: {Name}", body.DisplayName);
@@ -241,9 +254,24 @@ public class EquipmentFunction
             if (!string.IsNullOrWhiteSpace(body.Uid) && !IsValidUid(body.Uid.Trim().ToUpperInvariant()))
                 return new BadRequestObjectResult(new { error = "UID darf nur Großbuchstaben und Ziffern enthalten (max. 20 Zeichen)" });
 
+            if (!string.IsNullOrWhiteSpace(body.SmsArmCommand) && !IsValidSmsCommand(body.SmsArmCommand.Trim()))
+                return new BadRequestObjectResult(new { error = SmsCommandError });
+
+            if (!string.IsNullOrWhiteSpace(body.SmsDisarmCommand) && !IsValidSmsCommand(body.SmsDisarmCommand.Trim()))
+                return new BadRequestObjectResult(new { error = SmsCommandError });
+
             var table = _tableService.GetTableClient(TableName);
             var response = await table.GetEntityAsync<TableEntity>(PK, rowKey);
             var entity = response.Value;
+
+            // SMS control commands are Administrator-only (level >= 4)
+            if (callerLevel >= 4)
+            {
+                if (body.SmsArmCommand is not null)
+                    entity["SmsArmCommand"] = body.SmsArmCommand.Trim();
+                if (body.SmsDisarmCommand is not null)
+                    entity["SmsDisarmCommand"] = body.SmsDisarmCommand.Trim();
+            }
 
             // Manager+ can edit all fields; PowerUser can only edit location
             if (callerLevel >= 3)
@@ -335,6 +363,12 @@ public class EquipmentFunction
 
     private static bool IsValidUid(string value) => UidRegex.IsMatch(value);
 
+    private static readonly Regex SmsCommandRegex = new(@"^[A-Za-z0-9#*+.,:/_\- ]{1,50}$", RegexOptions.Compiled);
+
+    private const string SmsCommandError = "SMS-Befehl darf nur Buchstaben, Ziffern und #*+.,:/_- enthalten (max. 50 Zeichen)";
+
+    private static bool IsValidSmsCommand(string value) => SmsCommandRegex.IsMatch(value);
+
     private static bool IsValidIsoDate(string value) =>
         DateOnly.TryParseExact(value, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture,
             System.Globalization.DateTimeStyles.None, out _);
@@ -351,5 +385,7 @@ public class EquipmentFunction
         public string? PhoneNumber { get; init; }
         public string? SimExpiryDate { get; init; }
         public string? Uid { get; init; }
+        public string? SmsArmCommand { get; init; }
+        public string? SmsDisarmCommand { get; init; }
     }
 }
