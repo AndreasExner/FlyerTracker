@@ -102,6 +102,11 @@ const FT_AUTH = (function () {
         return localStorage.getItem(ROLE_KEY) || 'User';
     }
 
+    /** Synchronous token presence check (no server round-trip) */
+    function hasToken() {
+        return !!localStorage.getItem(TOKEN_KEY);
+    }
+
     /** Get the logged-in username (matches the rowKey used in name dropdowns) */
     function getUserName() {
         return localStorage.getItem(USER_KEY) || '';
@@ -142,7 +147,7 @@ const FT_AUTH = (function () {
         return localStorage.getItem('lostdogtracer_accountant') === '1';
     }
 
-    return { publicHeaders, adminHeaders, login, isLoggedIn, logout, sessionExpired, getApiBase, getRole, getRoleLevel, getUserName, requireRole, isAccountant };
+    return { publicHeaders, adminHeaders, login, isLoggedIn, hasToken, logout, sessionExpired, getApiBase, getRole, getRoleLevel, getUserName, requireRole, isAccountant };
 })();
 
 /* ── Password visibility toggle (delegated) ──────────────────── */

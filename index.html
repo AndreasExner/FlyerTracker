@@ -137,9 +137,17 @@
         const loginPass = document.getElementById('loginPass');
         const loginError = document.getElementById('loginError');
 
+        // Hide the login form before paint when a token exists: a login form that is still visible
+        // after the reload makes the browser assume the login failed and skip the save prompt
+        if (FT_AUTH.hasToken()) showMenu();
+
         // Check if already logged in
         FT_AUTH.isLoggedIn().then(valid => {
             if (valid) showMenu();
+            else {
+                loginSection.classList.remove('hidden');
+                menuSection.classList.add('hidden');
+            }
         });
 
         loginForm.addEventListener('submit', e => { e.preventDefault(); doLogin(); });
