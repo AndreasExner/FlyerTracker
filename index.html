@@ -53,12 +53,14 @@
                 style="display: block; margin: 0 auto 1.25rem; max-width: 100%; height: auto; border-radius: 10px;"
             />
             <h2>🔐 Anmeldung</h2>
-            <input type="text" id="loginUser" placeholder="Benutzername" autocomplete="username">
-            <div class="pw-wrap">
-                <input type="password" id="loginPass" placeholder="Kennwort" autocomplete="current-password">
-                <button type="button" class="pw-toggle" tabindex="-1">&#x1F441;</button>
-            </div>
-            <button class="btn btn-primary" id="loginBtn">Anmelden</button>
+            <form id="loginForm">
+                <input type="text" id="loginUser" name="username" placeholder="Benutzername" autocomplete="username">
+                <div class="pw-wrap">
+                    <input type="password" id="loginPass" name="password" placeholder="Kennwort" autocomplete="current-password">
+                    <button type="button" class="pw-toggle" tabindex="-1">&#x1F441;</button>
+                </div>
+                <button type="submit" class="btn btn-primary" id="loginBtn">Anmelden</button>
+            </form>
             <p class="login-error" id="loginError">Benutzername oder Kennwort falsch</p>
         </div>
     </div>
@@ -129,6 +131,7 @@
     (function () {
         const loginSection = document.getElementById('loginSection');
         const menuSection = document.getElementById('menuSection');
+        const loginForm = document.getElementById('loginForm');
         const loginBtn = document.getElementById('loginBtn');
         const loginUser = document.getElementById('loginUser');
         const loginPass = document.getElementById('loginPass');
@@ -139,9 +142,8 @@
             if (valid) showMenu();
         });
 
-        loginBtn.addEventListener('click', doLogin);
-        loginPass.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
-        loginUser.addEventListener('keydown', e => { if (e.key === 'Enter') loginPass.focus(); });
+        loginForm.addEventListener('submit', e => { e.preventDefault(); doLogin(); });
+        loginUser.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); loginPass.focus(); } });
 
         async function doLogin() {
             loginBtn.disabled = true;

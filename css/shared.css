@@ -89,6 +89,8 @@
 /* ── Password toggle ─────────────────────────────────────────── */
 .pw-wrap { position: relative; }
 .pw-wrap input { padding-right: 2.75rem; }
+/* Masks admin-managed passwords without a type=password field, so browsers offer no save prompt */
+.pw-masked { -webkit-text-security: disc; }
 .pw-toggle {
     position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%);
     background: none; border: none; cursor: pointer; font-size: 1.125rem;

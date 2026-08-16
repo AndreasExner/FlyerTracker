@@ -151,6 +151,12 @@ document.addEventListener('click', function (e) {
     if (!btn) return;
     const input = btn.parentElement.querySelector('input');
     if (!input) return;
-    input.type = input.type === 'password' ? 'text' : 'password';
-    btn.textContent = input.type === 'password' ? '\u{1F441}' : '\u{1F441}\u200D\u{1F5E8}';
+    let masked;
+    if (input.dataset.mask === 'css') {
+        masked = input.classList.toggle('pw-masked');
+    } else {
+        input.type = input.type === 'password' ? 'text' : 'password';
+        masked = input.type === 'password';
+    }
+    btn.textContent = masked ? '\u{1F441}' : '\u{1F441}\u200D\u{1F5E8}';
 });

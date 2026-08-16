@@ -21,6 +21,8 @@
             const data = await res.json();
             document.getElementById('profileUsername').textContent = data.username || '—';
             document.getElementById('profileRole').textContent = data.role || 'User';
+            // Tells the password manager which account the change belongs to
+            document.getElementById('pwFormUser').value = data.username || '';
 
             // Load display name from user list (own entry)
             const usersRes = await fetch(`${API}/manage/users`, { headers: FT_AUTH.adminHeaders() });
@@ -67,7 +69,8 @@
     });
 
     /* ── Change password ─────────────────────── */
-    document.getElementById('savePasswordBtn').addEventListener('click', async () => {
+    document.getElementById('pwForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
         const oldPw = document.getElementById('profileOldPw').value.trim();
         const newPw = document.getElementById('profileNewPw').value.trim();
         const newPw2 = document.getElementById('profileNewPw2').value.trim();

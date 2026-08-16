@@ -140,5 +140,5 @@
   (`ValidateTokenWithRole`). Frontend-Gates sind reiner UX-Komfort.
 - **Öffentliche Endpunkte** (Erfassung, Gast-/Owner-Abfragen, Login, Config-GET, Kategorien-GET)
   haben **bewusst keine** Rollenprüfung – Teil des Gast-/Owner-Konzepts.
-- **Feature-Flags** (`featDeployment`, `featEquipment`, gesetzt ab Manager) blenden Navigationspunkte
+- **Feature-Flags** (`featDeployment`, `featEquipment`, nur vom Administrator setzbar) blenden Navigationspunkte
   aus, selbst wenn das Rollen-Level ausreicht.

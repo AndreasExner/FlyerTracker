@@ -17,6 +17,7 @@ LostDogTracer ist eine mobile-first Progressive Web App (PWA) zur Dokumentation 
 - **Meine/Alle Standorte**: Umschalten zwischen eigenen und allen Einträgen (Tabelle + Karte)
 - Live-Standort-Tracking auf der Karte
 - **Offline-Support**: Einträge werden in IndexedDB zwischengespeichert und bei Verbindung automatisch übertragen
+- Kategorie ist mit "Flyer/Handzettel" vorbelegt; zuletzt gewählter Hund und Kategorie werden gemerkt
 - PWA-installierbar auf iOS und Android
 
 ### Neuer Eintrag (Manuelle Adresseingabe)
@@ -26,6 +27,7 @@ LostDogTracer ist eine mobile-first Progressive Web App (PWA) zur Dokumentation 
 
 ### GPS-Daten (Verwaltung)
 - Alle Einträge filtern (Name, Hund, Kategorie), sortieren und paginieren
+- Filterauswahl wird gemerkt; ohne gespeicherten Wert ist der Name mit dem angemeldeten Benutzer vorbelegt
 - Einzel- und Massenbearbeitung (inkl. Zeitpunkt)
 - Export als KML und CSV
 - Kartenansicht mit Marker-Clustering, farbcodierten Routen, Kategorie-SVG-Icons
@@ -69,7 +71,8 @@ LostDogTracer ist eine mobile-first Progressive Web App (PWA) zur Dokumentation 
 ### Administration
 - Benutzer, Hunde und Kategorien verwalten
 - Daten-Backup (JSON) und Wiederherstellung
-- Konfiguration (Banner, Links, Dokumentation) über Config-Tabelle
+- **Datenbereinigung**: GPS-Einträge und Fotos älter als 30/60/90/180/365 Tage oder "Alle Daten" löschen, optional auf einen Hund eingegrenzt, mit Vorschau vor der Ausführung
+- **Konfiguration** (Modal auf der Wartungsseite): Banner, Gast-Kategorie, Datenschutz-/Impressum-Link, drei Dokumentenlinks sowie die Schalter für Einsatzzeiten, Equipment und Debug-Login
 
 ### Sicherheit & Rollen
 - API-Key-Schutz aller Endpunkte
@@ -85,6 +88,9 @@ LostDogTracer ist eine mobile-first Progressive Web App (PWA) zur Dokumentation 
 - **Buchhalter**: querliegendes Flag, unabhängig von der Rolle. Nur Administratoren setzen es je Benutzer. Schaltet die Abrechnungs-/Statistikansicht (`deployment-accounting.html`) und den Endpunkt `/deployments/accounting` frei — unabhängig vom Rollen-Level.
 - **Owner-Zugang**: öffentlicher, tokenbasierter Zugang (24-Zeichen-Schlüssel je Hund) ohne Login — keine Rolle.
 - PBKDF2-gehashte Passwörter, HMAC-signierte Tokens (48h Lebensdauer, im `localStorage` gehalten)
+- **Sliding Expiration**: `/auth/verify` stellt einen frischen Token aus, sobald weniger als die halbe Laufzeit übrig ist — bei regelmäßiger Nutzung entfällt der Zwangs-Logout, ohne die Token-Laufzeit zu verlängern
+- **Persistent Storage** wird beim Start angefordert, damit iOS/Safari Token und Offline-Queue nicht vorzeitig verwirft
+- über "App zurücksetzen" im Menü werden Service Worker, Caches sowie `session-` und `localStorage` geleert (Abmeldung inklusive); die Offline-Queue in IndexedDB bleibt erhalten
 - Eingabe-Sanitisierung serverseitig (`InputSanitizer`, XSS-Schutz) plus Escaping bei der Anzeige
 - Rate-Limiting: Read 120/min, Write 15/min, Auth 10/min pro IP
 - Passwort-Sichtbarkeit-Toggle auf allen Kennwortfeldern
@@ -135,11 +141,12 @@ LostDogTracer/
 ├── field-map.html                # Feldarbeit: Karte├── deployments.html             # Einsätze: Ein-/Auschecken + eigene Liste
 ├── deployment-records.html      # Einsätze: Detailtabelle (bearbeiten/löschen)
 ├── deployment-accounting.html   # Einsätze: Abrechnung/Statistik (nur Buchhalter)├── gpsrecords.html               # GPS-Daten Verwaltung
+├── address-entry.html            # Neuer Eintrag: manuelle Adresseingabe
 ├── map.html                      # Kartenansicht (Verwaltung)
 ├── lostdogs.html                 # Hunde verwalten
 ├── categories.html               # Kategorien verwalten
 ├── users.html                    # Benutzerverwaltung
-├── maintenance.html              # Wartung (Backup/Restore/Cleanup)
+├── maintenance.html              # Wartung (Backup/Restore/Cleanup/Konfiguration)
 ├── profile.html                  # Eigenes Profil
 ├── docs.html                     # Dokumentation (PDF-Links)
 ├── equipment.html                # Equipment verwalten
@@ -161,6 +168,7 @@ LostDogTracer/
 │   ├── guest-nav.js              # Hamburger-Menü (Gast)
 │   ├── field-app.js              # Feldarbeit: GPS-Erfassung + Offline
 │   ├── gpsrecords.js             # GPS-Daten: Tabelle, Filter, Edit
+│   ├── address-entry.js          # Neuer Eintrag: Adresssuche + Minikarte
 │   ├── deployments.js            # Einsätze: Ein-/Auschecken + Liste
 │   ├── deployment-records.js     # Einsätze: Detailtabelle
 │   ├── deployment-accounting.js  # Einsätze: Abrechnung/Statistik
@@ -169,7 +177,7 @@ LostDogTracer/
 │   ├── categories.js             # Kategorien: CRUD + SVG-Picker
 │   ├── users.js                  # Benutzer: CRUD (rollenabhängig)
 │   ├── profile.js                # Profil: Passwort + Anzeigename
-│   ├── backup.js                 # Backup: Export/Import
+│   ├── backup.js                 # Backup: Export/Import, Cleanup, Konfiguration
 │   ├── offline-store.js          # IndexedDB Queue + Dropdown-Cache
 │   ├── svg-icons.js              # SVG-Markersymbole
 │   ├── equipment.js              # Equipment: CRUD + Standort-Modi

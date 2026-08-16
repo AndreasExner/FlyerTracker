@@ -56,22 +56,25 @@
         <!-- Password change -->
         <p class="section-title">Kennwort ändern</p>
         <div class="profile-card">
-            <label for="profileOldPw">Aktuelles Kennwort</label>
-            <div class="pw-wrap">
-                <input type="password" id="profileOldPw" placeholder="Aktuelles Kennwort" autocomplete="current-password">
-                <button type="button" class="pw-toggle" tabindex="-1">&#x1F441;</button>
-            </div>
-            <label for="profileNewPw">Neues Kennwort</label>
-            <div class="pw-wrap">
-                <input type="password" id="profileNewPw" placeholder="Neues Kennwort (min. 8 Zeichen)" autocomplete="new-password">
-                <button type="button" class="pw-toggle" tabindex="-1">&#x1F441;</button>
-            </div>
-            <label for="profileNewPw2">Neues Kennwort wiederholen</label>
-            <div class="pw-wrap">
-                <input type="password" id="profileNewPw2" placeholder="Neues Kennwort wiederholen" autocomplete="new-password">
-                <button type="button" class="pw-toggle" tabindex="-1">&#x1F441;</button>
-            </div>
-            <button class="btn btn-primary" id="savePasswordBtn">Kennwort ändern</button>
+            <form id="pwForm">
+                <input type="text" id="pwFormUser" name="username" autocomplete="username" readonly hidden>
+                <label for="profileOldPw">Aktuelles Kennwort</label>
+                <div class="pw-wrap">
+                    <input type="password" id="profileOldPw" name="current-password" placeholder="Aktuelles Kennwort" autocomplete="current-password">
+                    <button type="button" class="pw-toggle" tabindex="-1">&#x1F441;</button>
+                </div>
+                <label for="profileNewPw">Neues Kennwort</label>
+                <div class="pw-wrap">
+                    <input type="password" id="profileNewPw" name="new-password" placeholder="Neues Kennwort (min. 8 Zeichen)" autocomplete="new-password">
+                    <button type="button" class="pw-toggle" tabindex="-1">&#x1F441;</button>
+                </div>
+                <label for="profileNewPw2">Neues Kennwort wiederholen</label>
+                <div class="pw-wrap">
+                    <input type="password" id="profileNewPw2" name="new-password-confirm" placeholder="Neues Kennwort wiederholen" autocomplete="new-password">
+                    <button type="button" class="pw-toggle" tabindex="-1">&#x1F441;</button>
+                </div>
+                <button type="submit" class="btn btn-primary" id="savePasswordBtn">Kennwort ändern</button>
+            </form>
         </div>
 
         <div id="toast" class="toast hidden"></div>

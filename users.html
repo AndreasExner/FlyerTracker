@@ -72,7 +72,7 @@
             <input type="text" id="newUsername" placeholder="Benutzername" autocomplete="off">
             <input type="text" id="newDisplayName" placeholder="Anzeigename" autocomplete="off">
             <div class="pw-wrap">
-                <input type="password" id="newUserPw" placeholder="Kennwort (min. 8 Zeichen)" autocomplete="new-password">
+                <input type="text" id="newUserPw" class="pw-masked" data-mask="css" placeholder="Kennwort (min. 8 Zeichen)" autocomplete="off">
                 <button type="button" class="pw-toggle" tabindex="-1">&#x1F441;</button>
             </div>
             <select id="newUserRole" style="width:100%;padding:0.75rem 1rem;font-size:1rem;border:1px solid #d2d2d7;border-radius:10px;outline:none;margin-bottom:0.75rem;">
@@ -112,7 +112,7 @@
         <div class="modal">
             <h3>Kennwort zurücksetzen für: <span id="resetPwUser"></span></h3>
             <div class="pw-wrap">
-                <input type="password" id="resetNewPw" placeholder="Neues Kennwort (min. 8 Zeichen)" autocomplete="new-password">
+                <input type="text" id="resetNewPw" class="pw-masked" data-mask="css" placeholder="Neues Kennwort (min. 8 Zeichen)" autocomplete="off">
                 <button type="button" class="pw-toggle" tabindex="-1">&#x1F441;</button>
             </div>
             <p class="modal-error" id="resetPwError"></p>
