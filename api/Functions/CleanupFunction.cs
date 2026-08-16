@@ -46,8 +46,8 @@ public class CleanupFunction
                 return AdminAuth.Forbidden();
 
             var daysStr = req.Query["olderThanDays"].FirstOrDefault();
-            if (!int.TryParse(daysStr, out var days) || days < 1)
-                return new BadRequestObjectResult(new { error = "olderThanDays muss mindestens 1 sein" });
+            if (!int.TryParse(daysStr, out var days) || days < 0)
+                return new BadRequestObjectResult(new { error = "olderThanDays darf nicht negativ sein" });
 
             var lostDogFilter = req.Query["lostDog"].FirstOrDefault();
             var cutoff = DateTimeOffset.UtcNow.AddDays(-days);
@@ -104,8 +104,8 @@ public class CleanupFunction
                 return AdminAuth.Forbidden();
 
             var daysStr = req.Query["olderThanDays"].FirstOrDefault();
-            if (!int.TryParse(daysStr, out var days) || days < 1)
-                return new BadRequestObjectResult(new { error = "olderThanDays muss mindestens 1 sein" });
+            if (!int.TryParse(daysStr, out var days) || days < 0)
+                return new BadRequestObjectResult(new { error = "olderThanDays darf nicht negativ sein" });
 
             var lostDogFilter = req.Query["lostDog"].FirstOrDefault();
             var cutoff = DateTimeOffset.UtcNow.AddDays(-days);

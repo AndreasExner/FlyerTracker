@@ -260,7 +260,7 @@ Standard-Seed-Login: `admin` / `LostDogTracer2026!`
 
 Automatisch via GitHub Actions bei Push auf `main`:
 - Prod API-Key aus GitHub Secrets injiziert (`%%PROD_API_KEY%%`)
-- Build-Version generiert und in Navigation + Service Worker injiziert (`v1.3.N-hash`)
+- Build-Version generiert und in Navigation + Service Worker injiziert (`v1.5.N-hash`)
 - Config-Tabelle wird beim ersten API-Aufruf auto-geseeded
 
 ---

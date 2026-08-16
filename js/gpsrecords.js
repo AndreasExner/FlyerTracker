@@ -54,13 +54,31 @@
     let catDropdownBuilt = false;
     let catFilterTimer = null;
 
+    // ── Persisted filter selection ───────────────────────────────
+    const LAST_DOG_KEY = 'lostdogtracer_lastDog';
+    const LAST_NAME_KEY = 'lostdogtracer_lastName';
+    const LAST_CAT_KEY = 'lostdogtracer_category';
+    const savedDog = localStorage.getItem(LAST_DOG_KEY) ?? '';
+    const savedName = localStorage.getItem(LAST_NAME_KEY) ?? FT_AUTH.getUserName();
+    const savedCats = localStorage.getItem(LAST_CAT_KEY) ?? '';
+    // The option elements only exist after the first API response, so the first request uses the saved values
+    let filtersRestored = false;
+
+    function persistFilters() {
+        try {
+            localStorage.setItem(LAST_DOG_KEY, filterDogEl.value);
+            localStorage.setItem(LAST_NAME_KEY, filterNameEl.value);
+            localStorage.setItem(LAST_CAT_KEY, getSelectedCategories().join(','));
+        } catch { /* storage blocked */ }
+    }
+
     // ── Load records ─────────────────────────────────────────────
     async function loadRecords() {
         bodyEl.innerHTML = '<tr><td colspan="7" style="color:#6e6e73;text-align:center;padding:2rem">Lädt…</td></tr>';
         const ps = pageSizeEl.value;
-        const dog = filterDogEl.value;
-        const name = filterNameEl.value;
-        const cat = getSelectedCategories().join(',');
+        const dog = filtersRestored ? filterDogEl.value : savedDog;
+        const name = filtersRestored ? filterNameEl.value : savedName;
+        const cat = filtersRestored ? getSelectedCategories().join(',') : savedCats;
         const params = new URLSearchParams();
         params.set('pageSize', ps);
         params.set('page', currentPage);
@@ -84,7 +102,7 @@
     }
 
     function populateFilter(dogs, names, categories) {
-        const currentDog = filterDogEl.value;
+        const currentDog = filtersRestored ? filterDogEl.value : savedDog;
         while (filterDogEl.options.length > 1) filterDogEl.remove(1);
         dogs.forEach(d => {
             const opt = document.createElement('option');
@@ -94,7 +112,7 @@
         });
         filterDogEl.value = currentDog;
 
-        const currentName = filterNameEl.value;
+        const currentName = filtersRestored ? filterNameEl.value : savedName;
         while (filterNameEl.options.length > 1) filterNameEl.remove(1);
         names.forEach(n => {
             const opt = document.createElement('option');
@@ -104,7 +122,7 @@
         });
         filterNameEl.value = currentName;
 
-        const currentCat = getSelectedCategories();
+        const currentCat = filtersRestored ? getSelectedCategories() : savedCats.split(',').filter(Boolean);
         if (!catDropdownBuilt) {
             catDropdownEl.innerHTML = '';
             categories.forEach(c => {
@@ -118,6 +136,7 @@
                 if (currentCat.includes(key)) cb.checked = true;
                 cb.addEventListener('change', () => {
                     updateCatBtnText();
+                    persistFilters();
                     clearTimeout(catFilterTimer);
                     catFilterTimer = setTimeout(() => { currentPage = 1; loadRecords(); }, 500);
                 });
@@ -128,6 +147,7 @@
             updateCatBtnText();
             catDropdownBuilt = true;
         }
+        filtersRestored = true;
     }
 
     // ── Render table ─────────────────────────────────────────────
@@ -436,8 +456,8 @@
     });
 
     // ── Events ───────────────────────────────────────────────────
-    filterDogEl.addEventListener('change', () => { currentPage = 1; loadRecords(); });
-    filterNameEl.addEventListener('change', () => { currentPage = 1; loadRecords(); });
+    filterDogEl.addEventListener('change', () => { persistFilters(); currentPage = 1; loadRecords(); });
+    filterNameEl.addEventListener('change', () => { persistFilters(); currentPage = 1; loadRecords(); });
     // Category multi-select: events attached in populateFilter
     sortFieldEl.addEventListener('change', () => { sortRecords(); renderTable(); });
     pageSizeEl.addEventListener('change', () => { currentPage = 1; loadRecords(); });

@@ -131,7 +131,9 @@
             await Promise.all(keys.map(k => caches.delete(k)));
             // 3. Clear session + config caches
             sessionStorage.clear();
-            // 4. Hard reload
+            // 4. Drop all local state incl. login token — a reset should leave no artefacts behind
+            localStorage.clear();
+            // 5. Hard reload
             location.reload(true);
         } catch (e) {
             console.error('App reset failed:', e);

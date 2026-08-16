@@ -91,7 +91,7 @@
     resetLink.innerHTML = '<span class="nav-icon">🔄</span> App zurücksetzen';
     resetLink.addEventListener('click', e => {
         e.preventDefault();
-        if (confirm('App-Cache leeren und neu laden?')) {
+        if (confirm('App-Cache und lokale Einstellungen löschen?')) {
             if (window.FT_THEME) FT_THEME.resetApp();
             else location.reload(true);
         }

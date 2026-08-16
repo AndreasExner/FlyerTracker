@@ -18,6 +18,10 @@
     const saveEntryBtn = document.getElementById('saveEntryBtn');
     const toastEl = document.getElementById('toast');
 
+    const LAST_DOG_KEY = 'lostdogtracer_lastDog';
+    const LAST_NAME_KEY = 'lostdogtracer_lastName';
+    const LAST_CAT_KEY = 'lostdogtracer_category';
+
     let toastTimeout = null;
     let miniMap = null;
     let miniMarker = null;
@@ -46,10 +50,27 @@
             names.filter(n => (n.rowKey || n).toLowerCase() !== 'admin').forEach(n => { const o = document.createElement('option'); o.value = n.rowKey || n; o.textContent = n.displayName || n; entryNameEl.appendChild(o); });
             dogs.forEach(d => { const o = document.createElement('option'); o.value = d.rowKey || d; o.textContent = d.displayName || d; entryDogEl.appendChild(o); });
             cats.forEach(c => { const o = document.createElement('option'); o.value = c.rowKey || c; o.textContent = c.displayName || c; entryCategoryEl.appendChild(o); });
+            restoreSelections();
         } catch (e) {
             console.error('Failed to load entry dropdowns', e);
             showToast('Dropdown-Daten konnten nicht geladen werden', true);
         }
+    }
+
+    /** Preselect the last used values; the name falls back to the logged-in user */
+    function restoreSelections() {
+        entryNameEl.value = localStorage.getItem(LAST_NAME_KEY) ?? FT_AUTH.getUserName();
+        entryDogEl.value = localStorage.getItem(LAST_DOG_KEY) ?? '';
+        entryCategoryEl.value = localStorage.getItem(LAST_CAT_KEY) ?? '';
+        updateSaveBtn();
+    }
+
+    function persistSelections() {
+        try {
+            localStorage.setItem(LAST_NAME_KEY, entryNameEl.value);
+            localStorage.setItem(LAST_DOG_KEY, entryDogEl.value);
+            localStorage.setItem(LAST_CAT_KEY, entryCategoryEl.value);
+        } catch { /* storage blocked */ }
     }
 
     /** Set timestamp field to current local time */
@@ -188,9 +209,9 @@
 
     searchAddressBtn.addEventListener('click', searchAddress);
     addressInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); searchAddress(); } });
-    entryNameEl.addEventListener('change', updateSaveBtn);
-    entryDogEl.addEventListener('change', updateSaveBtn);
-    entryCategoryEl.addEventListener('change', updateSaveBtn);
+    entryNameEl.addEventListener('change', () => { persistSelections(); updateSaveBtn(); });
+    entryDogEl.addEventListener('change', () => { persistSelections(); updateSaveBtn(); });
+    entryCategoryEl.addEventListener('change', () => { persistSelections(); updateSaveBtn(); });
     saveEntryBtn.addEventListener('click', saveEntry);
 
     /* ── Init ─────────────────────────────────────── */

@@ -78,7 +78,7 @@ public class ConfigFunction
             var ip = req.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
             if (!_rateLimit.Write.IsAllowed(ip))
                 return new ObjectResult(new { error = "Zu viele Anfragen. Bitte warten." }) { StatusCode = 429 };
-            if (await _adminAuth.ValidateTokenWithRole(req, 3) == 0)
+            if (await _adminAuth.ValidateTokenWithRole(req, 4) == 0)
                 return AdminAuth.Forbidden();
 
             var body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body);
@@ -104,6 +104,9 @@ public class ConfigFunction
                 entity["FeatDeployment"] = fdProp.GetBoolean();
             if (body.TryGetProperty("featEquipment", out var feProp))
                 entity["FeatEquipment"] = feProp.GetBoolean();
+            // Stored as string because GetConfig reads it as one
+            if (body.TryGetProperty("debugLogin", out var dlProp))
+                entity["DebugLogin"] = dlProp.GetBoolean() ? "true" : "false";
 
             await table.UpsertEntityAsync(entity, TableUpdateMode.Replace);
             _logger.LogInformation("Config updated");
@@ -148,7 +151,9 @@ public class ConfigFunction
             bool updated = false;
             foreach (var (key, defaultVal) in DefaultValues)
             {
-                if (!entity.ContainsKey(key) || string.IsNullOrEmpty(entity.GetString(key)))
+                // TryGetValue instead of GetString: the feature flags may be stored as native booleans
+                if (!entity.TryGetValue(key, out var current) || current is null
+                    || (current is string s && string.IsNullOrEmpty(s)))
                 {
                     entity[key] = defaultVal;
                     updated = true;

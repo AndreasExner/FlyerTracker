@@ -63,11 +63,14 @@
         });
     }
 
-    // ── Read filter from URL params ──────────────────────────────
+    // ── Read filter from URL params, fall back to the last selection ──
+    const LAST_DOG_KEY = 'lostdogtracer_lastDog';
+    const LAST_NAME_KEY = 'lostdogtracer_lastName';
+    const LAST_CAT_KEY = 'lostdogtracer_category';
     const urlParams = new URLSearchParams(window.location.search);
-    let filterDog = urlParams.get('lostDog') || '';
-    let filterName = urlParams.get('name') || '';
-    let filterCategory = urlParams.get('category') || '';
+    let filterDog = urlParams.get('lostDog') ?? localStorage.getItem(LAST_DOG_KEY) ?? '';
+    let filterName = urlParams.get('name') ?? localStorage.getItem(LAST_NAME_KEY) ?? FT_AUTH.getUserName();
+    let filterCategory = urlParams.get('category') ?? localStorage.getItem(LAST_CAT_KEY) ?? '';
     if (filterDog) filterDogEl.value = filterDog;
     if (filterName) filterNameEl.value = filterName;
     // Category from URL will be applied after first data load
@@ -132,6 +135,11 @@
             filterDog = filterDogEl.value;
             filterName = filterNameEl.value;
             filterCategory = getSelectedCategories().join(',');
+            try {
+                localStorage.setItem(LAST_DOG_KEY, filterDog);
+                localStorage.setItem(LAST_NAME_KEY, filterName);
+                localStorage.setItem(LAST_CAT_KEY, filterCategory);
+            } catch { /* storage blocked */ }
             Object.keys(dogColorMap).forEach(k => delete dogColorMap[k]);
             colorIdx = 0;
             clusterGroup.clearLayers();
@@ -199,7 +207,7 @@
 
             // Populate dog filter dropdown (keep current selection)
             const currentDogs = data.lostDogs || [];
-            const currentVal = filterDogEl.value;
+            const currentVal = filterDogEl.value || filterDog;
             while (filterDogEl.options.length > 1) filterDogEl.remove(1);
             currentDogs.forEach(d => {
                 const opt = document.createElement('option');
@@ -210,7 +218,7 @@
 
             // Populate name filter dropdown (keep current selection)
             const currentNames = data.names || [];
-            const currentNameVal = filterNameEl.value;
+            const currentNameVal = filterNameEl.value || filterName;
             while (filterNameEl.options.length > 1) filterNameEl.remove(1);
             currentNames.forEach(n => {
                 const opt = document.createElement('option');

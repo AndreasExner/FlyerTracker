@@ -110,7 +110,7 @@
 | Aktion | U | PU | M | A |
 |--------|:--:|:--:|:--:|:--:|
 | Öffentliche Config lesen (`/config`) | öffentlich | | | |
-| Config ändern (Banner, Feature-Flags, Doku-Links) | – | – | ✓ | ✓ |
+| Config ändern (Banner, Feature-Flags, Doku-Links) | – | – | – | ✓ |
 | Kategorien verwalten (anlegen/ändern/löschen/seed) | – | – | – | ✓ |
 | Backup exportieren / Restore importieren | – | – | – | ✓ |
 | Datenbereinigung (Cleanup Vorschau/Ausführen) | – | – | – | ✓ |

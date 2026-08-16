@@ -9,22 +9,8 @@ const FT_AUTH = (function () {
     const API_KEY = IS_LOCAL ? 'lostdogtracer-dev-key-2026' : '%%PROD_API_KEY%%';
     const TOKEN_KEY = 'lostdogtracer_admin_token';
     const ROLE_KEY = 'lostdogtracer_role';
+    const USER_KEY = 'lostdogtracer_user';
     const API_BASE = IS_LOCAL ? 'http://localhost:7071/api' : '/api';
-
-    // One-time migration: merge the per-page dog selections into one key and drop pre-rowKey leftovers
-    (function migrateStorage() {
-        try {
-            const LAST_DOG = 'lostdogtracer_lastDog';
-            if (!localStorage.getItem(LAST_DOG)) {
-                const prev = localStorage.getItem('lostdogtracer_field_lostDog')
-                    || localStorage.getItem('lostdogtracer_deploy_dog');
-                if (prev) localStorage.setItem(LAST_DOG, prev);
-            }
-            ['lostdogtracer_field_lostDog', 'lostdogtracer_deploy_dog',
-                'lostdogtracer_lostDog', 'lostdogtracer_category', 'lostdogtracer_userName']
-                .forEach(k => localStorage.removeItem(k));
-        } catch { /* storage blocked – nothing to migrate */ }
-    })();
 
     /** Headers for public (non-admin) fetch calls */
     function publicHeaders(extra) {
@@ -59,6 +45,7 @@ const FT_AUTH = (function () {
                 try {
                     localStorage.setItem(TOKEN_KEY, data.token);
                     if (data.role) localStorage.setItem(ROLE_KEY, data.role);
+                    localStorage.setItem(USER_KEY, username.trim().toLowerCase());
                     if (data.accountant) localStorage.setItem('lostdogtracer_accountant', '1');
                     else localStorage.removeItem('lostdogtracer_accountant');
                     // Verify it was actually stored
@@ -95,6 +82,7 @@ const FT_AUTH = (function () {
             try {
                 const data = await res.json();
                 if (data.token) localStorage.setItem(TOKEN_KEY, data.token);
+                if (data.username) localStorage.setItem(USER_KEY, data.username);
             } catch { /* keep existing token */ }
             return true;
         } catch {
@@ -105,12 +93,18 @@ const FT_AUTH = (function () {
     function logout() {
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(ROLE_KEY);
+        localStorage.removeItem(USER_KEY);
         localStorage.removeItem('lostdogtracer_accountant');
     }
 
     /** Get cached role string */
     function getRole() {
         return localStorage.getItem(ROLE_KEY) || 'User';
+    }
+
+    /** Get the logged-in username (matches the rowKey used in name dropdowns) */
+    function getUserName() {
+        return localStorage.getItem(USER_KEY) || '';
     }
 
     /** Get numeric role level: User=1, Manager=2, Administrator=3 */
@@ -148,7 +142,7 @@ const FT_AUTH = (function () {
         return localStorage.getItem('lostdogtracer_accountant') === '1';
     }
 
-    return { publicHeaders, adminHeaders, login, isLoggedIn, logout, sessionExpired, getApiBase, getRole, getRoleLevel, requireRole, isAccountant };
+    return { publicHeaders, adminHeaders, login, isLoggedIn, logout, sessionExpired, getApiBase, getRole, getRoleLevel, getUserName, requireRole, isAccountant };
 })();
 
 /* ── Password visibility toggle (delegated) ──────────────────── */

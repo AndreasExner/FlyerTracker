@@ -154,13 +154,15 @@
                 if (!res.ok) throw new Error();
 
                 const data = await res.json();
+                const scope = data.olderThanDays > 0
+                    ? `älter als ${data.olderThanDays} Tage (Stichtag: ${data.cutoffDate})`
+                    : 'insgesamt (ohne Altersbegrenzung)';
                 if (data.recordCount === 0) {
-                    cleanupPreviewEl.textContent = `Keine Einträge älter als ${data.olderThanDays} Tage (Stichtag: ${data.cutoffDate})`;
+                    cleanupPreviewEl.textContent = `Keine Einträge ${scope}`;
                     cleanupPreviewEl.style.display = '';
                 } else {
                     cleanupPreviewEl.innerHTML =
-                        `<strong>${data.recordCount} Einträge</strong> und <strong>${data.photoCount} Fotos</strong> ` +
-                        `älter als ${data.olderThanDays} Tage (Stichtag: ${data.cutoffDate})` +
+                        `<strong>${data.recordCount} Einträge</strong> und <strong>${data.photoCount} Fotos</strong> ${scope}` +
                         (data.lostDog ? ` — gefiltert nach Hund` : '');
                     cleanupPreviewEl.style.display = '';
                     cleanupExecBtn.style.display = '';
@@ -174,7 +176,11 @@
         });
 
         cleanupExecBtn.addEventListener('click', async () => {
-            if (!confirm(`Alte Einträge und Fotos wirklich unwiderruflich löschen?\n\nDiese Aktion kann nicht rückgängig gemacht werden.`)) return;
+            const allData = cleanupDaysEl.value === '0';
+            const what = allData
+                ? (cleanupDogEl.value ? 'ALLE Einträge und Fotos des gewählten Hundes' : 'ALLE Einträge und Fotos')
+                : 'Alte Einträge und Fotos';
+            if (!confirm(`${what} wirklich unwiderruflich löschen?\n\nDiese Aktion kann nicht rückgängig gemacht werden.`)) return;
 
             cleanupExecBtn.disabled = true;
             cleanupExecBtn.textContent = '⏳ Wird bereinigt…';
@@ -202,6 +208,84 @@
             } finally {
                 cleanupExecBtn.disabled = false;
                 cleanupExecBtn.textContent = 'Bereinigung durchführen';
+            }
+        });
+    }
+
+    // ── Configuration ────────────────────────────────────────────
+    const configBtn = document.getElementById('configBtn');
+    if (configBtn) {
+        const configModal = document.getElementById('configModal');
+        const cfgError = document.getElementById('cfgError');
+        const cfgGuestCategoryEl = document.getElementById('cfgGuestCategory');
+        // Maps the config keys to their input elements; checkboxes are handled separately
+        const TEXT_FIELDS = ['siteBanner', 'guestCategory', 'privacyUrl', 'imprintUrl',
+            'doc1Label', 'doc1Link', 'doc2Label', 'doc2Link', 'doc3Label', 'doc3Link'];
+        const CHECK_FIELDS = ['featDeployment', 'featEquipment', 'debugLogin'];
+        const el = key => document.getElementById('cfg' + key[0].toUpperCase() + key.slice(1));
+
+        let categoriesLoaded = false;
+        async function loadCategoryOptions() {
+            if (categoriesLoaded) return;
+            try {
+                const res = await fetch(`${API_BASE}/categories`, { headers: FT_AUTH.publicHeaders() });
+                if (!res.ok) return;
+                const cats = await res.json();
+                cats.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.rowKey || c;
+                    opt.textContent = c.displayName || c;
+                    cfgGuestCategoryEl.appendChild(opt);
+                });
+                categoriesLoaded = true;
+            } catch { /* keep the plain list */ }
+        }
+
+        configBtn.addEventListener('click', async () => {
+            cfgError.style.display = 'none';
+            configBtn.disabled = true;
+            try {
+                await loadCategoryOptions();
+                const res = await fetch(`${API_BASE}/config`, { headers: FT_AUTH.publicHeaders() });
+                if (!res.ok) throw new Error();
+                const cfg = await res.json();
+                TEXT_FIELDS.forEach(k => { el(k).value = (k === 'guestCategory' ? cfg.guestCategoryRowKey : cfg[k]) || ''; });
+                CHECK_FIELDS.forEach(k => { el(k).checked = !!cfg[k]; });
+                configModal.classList.add('open');
+            } catch {
+                showToast('Konfiguration konnte nicht geladen werden', true);
+            } finally {
+                configBtn.disabled = false;
+            }
+        });
+
+        document.getElementById('cfgCancel').addEventListener('click', () => configModal.classList.remove('open'));
+
+        document.getElementById('cfgSave').addEventListener('click', async () => {
+            const saveBtn = document.getElementById('cfgSave');
+            const payload = { guestCategoryRowKey: cfgGuestCategoryEl.value };
+            TEXT_FIELDS.filter(k => k !== 'guestCategory').forEach(k => { payload[k] = el(k).value.trim(); });
+            CHECK_FIELDS.forEach(k => { payload[k] = el(k).checked; });
+
+            saveBtn.disabled = true;
+            cfgError.style.display = 'none';
+            try {
+                const res = await fetch(`${API_BASE}/manage/config`, {
+                    method: 'PUT',
+                    headers: FT_AUTH.adminHeaders({ 'Content-Type': 'application/json' }),
+                    body: JSON.stringify(payload)
+                });
+                if (res.status === 401) { FT_AUTH.sessionExpired(); return; }
+                if (!res.ok) throw new Error();
+                // Drop the cached copy so every page picks up the new values
+                sessionStorage.removeItem('lostdogtracer_config');
+                configModal.classList.remove('open');
+                showToast('Konfiguration gespeichert');
+            } catch {
+                cfgError.textContent = 'Speichern fehlgeschlagen';
+                cfgError.style.display = 'block';
+            } finally {
+                saveBtn.disabled = false;
             }
         });
     }

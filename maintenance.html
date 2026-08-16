@@ -7,6 +7,39 @@
     <title>LostDogTracer – Wartung</title>
     <link rel="stylesheet" href="css/shared.css">
     <link rel="stylesheet" href="css/admin.css">
+    <style>
+        .modal-overlay {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,.35);
+            z-index: 100; align-items: center; justify-content: center;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal {
+            background: var(--bg-card); color: var(--text-primary);
+            border-radius: 14px; padding: 1.5rem; max-width: 520px; width: 92%;
+            max-height: 85vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,.2);
+        }
+        .modal h3 { margin-bottom: 1rem; font-size: 1.125rem; }
+        .modal h4 {
+            margin: 1.25rem 0 0.5rem; font-size: 0.8125rem; text-transform: uppercase;
+            letter-spacing: 0.04em; color: var(--text-secondary);
+        }
+        .modal label.field { display: block; font-size: 0.8125rem; color: var(--text-secondary); margin-bottom: 0.25rem; }
+        .modal input[type="text"], .modal select {
+            width: 100%; padding: 0.625rem 0.875rem; font-size: 0.9375rem;
+            border: 1px solid var(--border-color); border-radius: 10px; outline: none;
+            margin-bottom: 0.75rem; box-sizing: border-box;
+            background: var(--bg-card); color: var(--text-primary);
+        }
+        .modal input[type="text"]:focus, .modal select:focus {
+            border-color: #0071e3; box-shadow: 0 0 0 3px rgba(0,113,227,.15);
+        }
+        .modal label.check {
+            display: flex; align-items: center; gap: 0.5rem;
+            font-size: 0.9375rem; margin-bottom: 0.5rem; cursor: pointer;
+        }
+        .modal-buttons { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem; }
+        .modal-error { color: #ff3b30; font-size: 0.875rem; margin-top: 0.25rem; display: none; }
+    </style>
 </head>
 <body>
     <div class="site-banner">Hundesuchhilfe-Ostfriesland e.V.</div>
@@ -45,6 +78,17 @@
 
         <hr style="border:none;border-top:1px solid var(--border-color);margin:2rem 0;">
 
+        <!-- Configuration -->
+        <div class="backup-section">
+            <h2 style="font-size:1.15rem;margin-bottom:0.75rem;">Konfiguration</h2>
+            <p style="font-size:0.875rem;color:var(--text-secondary);margin-bottom:1rem;">
+                Globale App-Einstellungen: Banner, Gast-Kategorie, Rechts- und Dokumentenlinks sowie Feature-Schalter.
+            </p>
+            <button class="btn btn-primary" id="configBtn">⚙️ Konfiguration</button>
+        </div>
+
+        <hr style="border:none;border-top:1px solid var(--border-color);margin:2rem 0;">
+
         <!-- Cleanup -->
         <div class="backup-section">
             <h2 style="font-size:1.15rem;margin-bottom:0.75rem;">Alte Daten bereinigen</h2>
@@ -58,6 +102,7 @@
                     <option value="90" selected>Älter als 90 Tage</option>
                     <option value="180">Älter als 180 Tage</option>
                     <option value="365">Älter als 365 Tage</option>
+                    <option value="0">Alle Daten</option>
                 </select>
                 <select id="cleanupDog" style="padding:0.5rem 0.75rem;font-size:0.875rem;border:1px solid var(--border-color);border-radius:8px;outline:none;">
                     <option value="">Alle Hunde</option>
@@ -70,6 +115,50 @@
         </div>
 
         <div id="toast" class="toast hidden"></div>
+    </div>
+
+    <!-- Modal: Konfiguration -->
+    <div class="modal-overlay" id="configModal">
+        <div class="modal">
+            <h3>⚙️ Konfiguration</h3>
+
+            <h4>Allgemein</h4>
+            <label class="field" for="cfgSiteBanner">Banner-Text</label>
+            <input type="text" id="cfgSiteBanner" maxlength="100" autocomplete="off">
+            <label class="field" for="cfgGuestCategory">Kategorie für Gast-Einträge</label>
+            <select id="cfgGuestCategory"><option value="">— keine —</option></select>
+
+            <h4>Rechtliches</h4>
+            <label class="field" for="cfgPrivacyUrl">Link Datenschutz</label>
+            <input type="text" id="cfgPrivacyUrl" maxlength="300" autocomplete="off">
+            <label class="field" for="cfgImprintUrl">Link Impressum</label>
+            <input type="text" id="cfgImprintUrl" maxlength="300" autocomplete="off">
+
+            <h4>Dokumente</h4>
+            <label class="field" for="cfgDoc1Label">Dokument 1 — Bezeichnung</label>
+            <input type="text" id="cfgDoc1Label" maxlength="100" autocomplete="off">
+            <label class="field" for="cfgDoc1Link">Dokument 1 — Link</label>
+            <input type="text" id="cfgDoc1Link" maxlength="300" autocomplete="off">
+            <label class="field" for="cfgDoc2Label">Dokument 2 — Bezeichnung</label>
+            <input type="text" id="cfgDoc2Label" maxlength="100" autocomplete="off">
+            <label class="field" for="cfgDoc2Link">Dokument 2 — Link</label>
+            <input type="text" id="cfgDoc2Link" maxlength="300" autocomplete="off">
+            <label class="field" for="cfgDoc3Label">Dokument 3 — Bezeichnung</label>
+            <input type="text" id="cfgDoc3Label" maxlength="100" autocomplete="off">
+            <label class="field" for="cfgDoc3Link">Dokument 3 — Link</label>
+            <input type="text" id="cfgDoc3Link" maxlength="300" autocomplete="off">
+
+            <h4>Funktionen</h4>
+            <label class="check"><input type="checkbox" id="cfgFeatDeployment"> Einsatzzeiten aktiv</label>
+            <label class="check"><input type="checkbox" id="cfgFeatEquipment"> Equipment aktiv</label>
+            <label class="check"><input type="checkbox" id="cfgDebugLogin"> Detaillierte Login-Fehlermeldungen</label>
+
+            <p class="modal-error" id="cfgError"></p>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary btn-sm" id="cfgCancel">Abbrechen</button>
+                <button class="btn btn-primary btn-sm" id="cfgSave">Speichern</button>
+            </div>
+        </div>
     </div>
     <script src="js/auth.js"></script>
     <script>

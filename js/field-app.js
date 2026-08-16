@@ -6,6 +6,7 @@
     const API_KEY_HDR = FT_AUTH.publicHeaders();
     const STORAGE_KEY_LOCATION = 'lostdogtracer_lastDog';
     const STORAGE_KEY_CATEGORY = 'lostdogtracer_field_category';
+    const DEFAULT_CATEGORY = 'Flyer/Handzettel';
 
     const userNameEl = document.getElementById('userName');
     const userNameKeyEl = document.getElementById('userNameKey');
@@ -170,6 +171,11 @@
         const c = localStorage.getItem(STORAGE_KEY_CATEGORY);
         if (l) lostDogEl.value = l;
         if (c) categoryEl.value = c;
+        if (!categoryEl.value) {
+            // Categories are keyed by rowKey, so the default has to be matched on the label
+            const fallback = [...categoryEl.options].find(o => o.textContent === DEFAULT_CATEGORY);
+            if (fallback) categoryEl.value = fallback.value;
+        }
     }
 
     function persistSelections() {
