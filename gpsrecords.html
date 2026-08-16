@@ -7,18 +7,16 @@
     <title>LostDogTracer – GPS-Daten</title>
     <link rel="stylesheet" href="css/shared.css">
     <link rel="stylesheet" href="css/admin.css">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
 <body>
     <div class="site-banner">Hundesuchhilfe-Ostfriesland e.V.</div>
     <div class="admin-container">
         <div class="admin-header">
             <h1>GPS-Daten</h1>
-            <a href="index.html" class="btn-back" id="backBtn">Zurück</a>
+            <a href="index.html" class="btn-back">Zurück</a>
         </div>
 
         <!-- Toolbar: filter, sort, page-size, actions -->
-        <div id="tableSection">
         <div class="toolbar">
             <select id="filterName" title="Filter nach Name">
                 <option value="">Alle Namen</option>
@@ -81,34 +79,6 @@
             <button class="btn btn-primary btn-sm" id="editSelectedBtn" disabled>Ausgewählte bearbeiten</button>
             <button class="btn btn-danger btn-sm" id="deleteSelectedBtn" disabled>Ausgewählte löschen</button>
         </div>
-        </div><!-- /tableSection -->
-
-        <!-- Address entry panel -->
-        <details id="addressPanel" class="address-panel" style="border:2px solid #34c759;border-radius:12px;padding:1rem;background:#f0fff4;">
-            <summary style="color:#1a7f37;font-weight:600;cursor:pointer;">📍 Neuer Eintrag (Adresse)</summary>
-            <div class="address-form">
-                <div class="address-search-row">
-                    <input type="text" id="addressInput" placeholder="Straße, Ort eingeben…" autocomplete="off">
-                    <button class="btn btn-primary btn-sm" id="searchAddressBtn">Suchen</button>
-                </div>
-                <ul id="searchResults" class="search-results hidden"></ul>
-                <div id="miniMapWrap" class="mini-map-wrap hidden">
-                    <div id="miniMap"></div>
-                    <div class="map-hint">Marker verschiebbar für Feinkorrektur</div>
-                </div>
-                <div id="entryFields" class="entry-fields hidden">
-                    <div class="form-grid">
-                        <select id="entryName" title="Name"><option value="">Name wählen…</option></select>
-                        <select id="entryDog" title="Hund"><option value="">Hund wählen…</option></select>
-                        <select id="entryCategory" title="Kategorie"><option value="">Kategorie wählen…</option></select>
-                        <input type="text" id="entryComment" placeholder="Kommentar (optional, max. 40 Zeichen)" maxlength="40">
-                        <input type="datetime-local" id="entryTimestamp" title="Zeitpunkt">
-                    </div>
-                    <div class="coords-display" id="coordsDisplay"></div>
-                    <button class="btn btn-primary" id="saveEntryBtn" disabled>Eintrag speichern</button>
-                </div>
-            </div>
-        </details>
 
         <!-- Export actions -->
         <div class="toolbar" style="margin-top: 0.75rem;">
@@ -170,7 +140,6 @@
     <script>
         FT_AUTH.requireRole(1);
     </script>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="js/gpsrecords.js"></script>
     <script src="js/theme.js"></script>
     <script src="js/nav.js"></script>

@@ -19,10 +19,14 @@ LostDogTracer ist eine mobile-first Progressive Web App (PWA) zur Dokumentation 
 - **Offline-Support**: Einträge werden in IndexedDB zwischengespeichert und bei Verbindung automatisch übertragen
 - PWA-installierbar auf iOS und Android
 
+### Neuer Eintrag (Manuelle Adresseingabe)
+- Eigene Seite (ab PowerUser) zum nachträglichen Erfassen eines Standorts ohne GPS-Gerät
+- Adresssuche über Nominatim (DE/NL) mit Kartenvorschau und verschiebbarem Marker zur Feinkorrektur
+- Auswahl von Name, Hund, Kategorie, Kommentar und Zeitpunkt
+
 ### GPS-Daten (Verwaltung)
 - Alle Einträge filtern (Name, Hund, Kategorie), sortieren und paginieren
 - Einzel- und Massenbearbeitung (inkl. Zeitpunkt)
-- Neuer Eintrag per Adresssuche (Nominatim) mit Kartenvorschau
 - Export als KML und CSV
 - Kartenansicht mit Marker-Clustering, farbcodierten Routen, Kategorie-SVG-Icons
 - Navigation zu Standorten via Google Maps, Apple Maps, Waze

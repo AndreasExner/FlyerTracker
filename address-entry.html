@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#ffffff">
+    <title>LostDogTracer – Neuer Eintrag</title>
+    <link rel="stylesheet" href="css/shared.css">
+    <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+</head>
+<body>
+    <div class="site-banner">Hundesuchhilfe-Ostfriesland e.V.</div>
+    <div class="admin-container">
+        <div class="admin-header">
+            <h1>📝 Neuer Eintrag</h1>
+            <a href="index.html" class="btn-back">Zurück</a>
+        </div>
+
+        <div class="address-form">
+            <div class="address-search-row">
+                <input type="text" id="addressInput" placeholder="Straße, Ort eingeben…" autocomplete="off">
+                <button class="btn btn-primary btn-sm" id="searchAddressBtn">Suchen</button>
+            </div>
+            <ul id="searchResults" class="search-results hidden"></ul>
+            <div id="miniMapWrap" class="mini-map-wrap hidden">
+                <div id="miniMap"></div>
+                <div class="map-hint">Marker verschiebbar für Feinkorrektur</div>
+            </div>
+            <div id="entryFields" class="entry-fields hidden">
+                <div class="form-grid">
+                    <select id="entryName" title="Name"><option value="">Name wählen…</option></select>
+                    <select id="entryDog" title="Hund"><option value="">Hund wählen…</option></select>
+                    <select id="entryCategory" title="Kategorie"><option value="">Kategorie wählen…</option></select>
+                    <input type="text" id="entryComment" placeholder="Kommentar (optional, max. 40 Zeichen)" maxlength="40">
+                    <input type="datetime-local" id="entryTimestamp" title="Zeitpunkt">
+                </div>
+                <div class="coords-display" id="coordsDisplay"></div>
+                <button class="btn btn-primary" id="saveEntryBtn" disabled>Eintrag speichern</button>
+            </div>
+        </div>
+
+        <div id="toast" class="toast hidden"></div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script>
+        FT_AUTH.requireRole(2);
+    </script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="js/address-entry.js"></script>
+    <script src="js/theme.js"></script>
+    <script src="js/nav.js"></script>
+</body>
+</html>

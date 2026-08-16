@@ -2,12 +2,13 @@
 (function () {
     // Inject on sub-pages and index.html menu page
     const path = location.pathname;
-    const isSubPage = /(?:gpsrecords|map|lostdogs|categories|users|equipment|deployments|deployment-records|deployment-accounting|maintenance|profile|docs)\.html$/i.test(path);
+    const isSubPage = /(?:gpsrecords|address-entry|map|lostdogs|categories|users|equipment|deployments|deployment-records|deployment-accounting|maintenance|profile|docs)\.html$/i.test(path);
     const isHome = /index\.html$/i.test(path) || path === '/' || path.endsWith('/');
     if (!isSubPage && !isHome) return;
 
     const pages = [
         { href: 'field-home.html', icon: '🚩', label: 'Erfassen', minRole: 1 },
+        { href: 'address-entry.html', icon: '📝', label: 'Neuer Eintrag', minRole: 2 },
         { href: 'gpsrecords.html', icon: '📍', label: 'GPS-Daten', minRole: 1 },
         { href: 'deployments.html', icon: '⏱️', label: 'Einsatzzeiten', minRole: 1, feat: 'deployment' },
         { href: 'equipment.html',  icon: '📷', label: 'Equipment', minRole: 2, feat: 'equipment' },

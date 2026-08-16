@@ -27,6 +27,7 @@
 | Einsatzzeiten (`deployments.html`)¹ | ✓ | ✓ | ✓ | ✓ |
 | Profil (`profile.html`), Doku (`docs.html`) | ✓ | ✓ | ✓ | ✓ |
 | Abrechnung (`deployment-accounting.html`) | nur Buchhalter | nur Buchhalter | nur Buchhalter | nur Buchhalter |
+| Neuer Eintrag (`address-entry.html`) | – | ✓ | ✓ | ✓ |
 | Equipment (`equipment.html`)¹ | – | ✓ | ✓ | ✓ |
 | Hunde (`lostdogs.html`) | – | – | ✓ | ✓ |
 | Benutzer (`users.html`) | – | – | ✓ | ✓ |
@@ -57,6 +58,13 @@
 | Export | – | ✓ | ✓ | ✓ |
 
 > User (1) hat hier **Nur-Lese-Modus**: Checkboxen, Aktions- und Export-Buttons sind ausgeblendet.
+
+### Neuer Eintrag – manuelle Adresseingabe (`address-entry.html`)
+
+| Aktion | U | PU | M | A |
+|--------|:--:|:--:|:--:|:--:|
+| Seite aufrufen (`requireRole(2)`) | – | ✓ | ✓ | ✓ |
+| Eintrag per Adresssuche speichern (`/save-location`) | – | ✓ | ✓ | ✓ |
 
 ### Einsatzzeiten (`deployments.html`)
 
