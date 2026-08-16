@@ -77,7 +77,8 @@ public class AuthFunction
             var map = await _auth.GetUserDisplayNameMapAsync();
             displayName = map.GetValueOrDefault(username, username);
         }
-        return new OkObjectResult(new { valid = true, username, role, accountant, displayName = displayName ?? username });
+        var renewedToken = _auth.RenewTokenIfNeeded(req);
+        return new OkObjectResult(new { valid = true, username, role, accountant, displayName = displayName ?? username, token = renewedToken });
     }
 
     [Function("ChangePassword")]

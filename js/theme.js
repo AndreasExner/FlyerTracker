@@ -52,6 +52,16 @@
     // Apply immediately
     applySavedTheme();
 
+    // ── Persistent Storage ───────────────────────────────────────
+    // Without this, iOS/Safari may evict the login token and the offline queue under storage pressure
+    (async function requestPersistentStorage() {
+        try {
+            if (navigator.storage?.persist && !(await navigator.storage.persisted())) {
+                await navigator.storage.persist();
+            }
+        } catch { /* not supported – nothing to do */ }
+    })();
+
     // ── Site Banner from Config ──────────────────────────────────
     (async function loadSiteBanner() {
         try {

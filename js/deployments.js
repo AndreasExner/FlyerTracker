@@ -25,7 +25,7 @@
     let toastTimeout = null;
 
     let isActive = false;
-    const STORAGE_KEY_DOG = 'lostdogtracer_deploy_dog';
+    const STORAGE_KEY_DOG = 'lostdogtracer_lastDog';
 
     // ── Load dogs ────────────────────────────────────────────────
     async function loadDogs() {

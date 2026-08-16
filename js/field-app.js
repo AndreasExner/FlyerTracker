@@ -4,8 +4,7 @@
 
     const API_BASE = FT_AUTH.getApiBase();
     const API_KEY_HDR = FT_AUTH.publicHeaders();
-    const STORAGE_KEY_NAME = 'lostdogtracer_field_userName';
-    const STORAGE_KEY_LOCATION = 'lostdogtracer_field_lostDog';
+    const STORAGE_KEY_LOCATION = 'lostdogtracer_lastDog';
     const STORAGE_KEY_CATEGORY = 'lostdogtracer_field_category';
 
     const userNameEl = document.getElementById('userName');

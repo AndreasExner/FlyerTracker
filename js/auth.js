@@ -11,6 +11,21 @@ const FT_AUTH = (function () {
     const ROLE_KEY = 'lostdogtracer_role';
     const API_BASE = IS_LOCAL ? 'http://localhost:7071/api' : '/api';
 
+    // One-time migration: merge the per-page dog selections into one key and drop pre-rowKey leftovers
+    (function migrateStorage() {
+        try {
+            const LAST_DOG = 'lostdogtracer_lastDog';
+            if (!localStorage.getItem(LAST_DOG)) {
+                const prev = localStorage.getItem('lostdogtracer_field_lostDog')
+                    || localStorage.getItem('lostdogtracer_deploy_dog');
+                if (prev) localStorage.setItem(LAST_DOG, prev);
+            }
+            ['lostdogtracer_field_lostDog', 'lostdogtracer_deploy_dog',
+                'lostdogtracer_lostDog', 'lostdogtracer_category', 'lostdogtracer_userName']
+                .forEach(k => localStorage.removeItem(k));
+        } catch { /* storage blocked – nothing to migrate */ }
+    })();
+
     /** Headers for public (non-admin) fetch calls */
     function publicHeaders(extra) {
         return Object.assign({ 'X-API-Key': API_KEY }, extra || {});
@@ -75,7 +90,13 @@ const FT_AUTH = (function () {
             const res = await fetch(`${API_BASE}/auth/verify`, {
                 headers: { 'X-API-Key': API_KEY, 'X-Admin-Token': token }
             });
-            return res.ok;
+            if (!res.ok) return false;
+            // Sliding expiration: the API hands out a fresh token once the old one is half expired
+            try {
+                const data = await res.json();
+                if (data.token) localStorage.setItem(TOKEN_KEY, data.token);
+            } catch { /* keep existing token */ }
+            return true;
         } catch {
             return true; // Network error but token exists: allow access
         }

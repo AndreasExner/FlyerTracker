@@ -4,7 +4,6 @@
     const IS_LOCAL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     const API_BASE = IS_LOCAL ? 'http://localhost:7071/api' : '/api';
     const API_KEY = IS_LOCAL ? 'lostdogtracer-dev-key-2026' : '%%PROD_API_KEY%%';
-    const STORAGE_KEY_CATEGORY = 'lostdogtracer_guest_category';
     const STORAGE_KEY_UUID = 'lostdogtracer_guest_uuid';
     const STORAGE_KEY_TOKEN = 'lostdogtracer_guest_token';
     const STORAGE_KEY_NICK = 'lostdogtracer_guest_nick';

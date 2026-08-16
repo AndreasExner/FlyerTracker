@@ -151,6 +151,39 @@ public class AdminAuth
         return !string.IsNullOrEmpty(token) && IsTokenValid(token);
     }
 
+    /// <summary>Sliding expiration: returns a fresh token once less than half the lifetime remains, else null.</summary>
+    public string? RenewTokenIfNeeded(HttpRequest req)
+    {
+        var username = GetUsernameFromToken(req);
+        if (username is null) return null;
+
+        var token = ExtractToken(req);
+        if (token is null) return null;
+
+        try
+        {
+            var payload = Encoding.UTF8.GetString(Convert.FromBase64String(token.Split('.')[0]));
+            var expires = long.Parse(payload.Split('|')[1]);
+            var remaining = expires - DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            if (remaining > _tokenLifetime.TotalSeconds / 2) return null;
+        }
+        catch { return null; }
+
+        return CreateToken(username);
+    }
+
+    private static string? ExtractToken(HttpRequest req)
+    {
+        var token = req.Headers["X-Admin-Token"].FirstOrDefault();
+        if (string.IsNullOrEmpty(token))
+        {
+            var authHeader = req.Headers["Authorization"].FirstOrDefault();
+            if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                token = authHeader["Bearer ".Length..].Trim();
+        }
+        return string.IsNullOrEmpty(token) ? null : token;
+    }
+
     /// <summary>Validate token AND check minimum role level. Returns role level (0 = invalid).</summary>
     public async Task<int> ValidateTokenWithRole(HttpRequest req, int minLevel = 1)
     {
