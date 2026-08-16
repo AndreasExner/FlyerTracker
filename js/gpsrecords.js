@@ -63,6 +63,7 @@
     const savedCats = localStorage.getItem(LAST_CAT_KEY) ?? '';
     // The option elements only exist after the first API response, so the first request uses the saved values
     let filtersRestored = false;
+    let filterResetNeeded = false;
 
     function persistFilters() {
         try {
@@ -92,6 +93,7 @@
             if (!res.ok) throw new Error();
             data = await res.json();
             populateFilter(data.lostDogs, data.names || [], data.categories || []);
+            if (filterResetNeeded) { filterResetNeeded = false; persistFilters(); loadRecords(); return; }
             sortRecords();
             renderTable();
             renderPagination();
@@ -147,7 +149,14 @@
             updateCatBtnText();
             catDropdownBuilt = true;
         }
-        filtersRestored = true;
+        if (!filtersRestored) {
+            filtersRestored = true;
+            // A saved value without matching option would filter invisibly – drop it and reload
+            if (filterDogEl.value !== savedDog || filterNameEl.value !== savedName
+                || getSelectedCategories().join(',') !== savedCats) {
+                filterResetNeeded = true;
+            }
+        }
     }
 
     // ── Render table ─────────────────────────────────────────────

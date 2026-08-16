@@ -102,6 +102,11 @@ public class GPSRecordsFunction
                 var nameKey = entity.PartitionKey ?? "";
                 var categoryKey = entity.GetString("Category") ?? "";
 
+                // Dropdown options list every existing value, independent of the active filter
+                if (!string.IsNullOrEmpty(lostDogKey)) allLostDogKeys.Add(lostDogKey);
+                if (!string.IsNullOrEmpty(nameKey)) allNameKeys.Add(nameKey);
+                if (!string.IsNullOrEmpty(categoryKey)) allCategoryKeys.Add(categoryKey);
+
                 // Filters work on RowKey (FK) values
                 if (!string.IsNullOrEmpty(lostDogFilter) && lostDogKey != lostDogFilter)
                     continue;
@@ -109,10 +114,6 @@ public class GPSRecordsFunction
                     continue;
                 if (categoryFilters.Length > 0 && !categoryFilters.Contains(categoryKey))
                     continue;
-
-                if (!string.IsNullOrEmpty(lostDogKey)) allLostDogKeys.Add(lostDogKey);
-                if (!string.IsNullOrEmpty(nameKey)) allNameKeys.Add(nameKey);
-                if (!string.IsNullOrEmpty(categoryKey)) allCategoryKeys.Add(categoryKey);
 
                 // Resolve display name: for GUEST records use nickname from GuestToken
                 string displayName;

@@ -129,6 +129,7 @@
     // ── Filter change handler (debounced) ────────────────────────
     let filterTimer = null;
     let catDropdownBuilt = false;
+    let filtersChecked = false;
     function onFilterChange() {
         clearTimeout(filterTimer);
         filterTimer = setTimeout(() => {
@@ -254,6 +255,19 @@
                         catDropdownBuilt = true;
                     }
                 } catch { /* use data.categories as fallback */ }
+            }
+
+            if (!filtersChecked) {
+                filtersChecked = true;
+                // A restored value without matching option would filter invisibly – drop it and reload
+                if (filterDogEl.value !== filterDog || filterNameEl.value !== filterName
+                    || getSelectedCategories().join(',') !== filterCategory) {
+                    filterDog = filterDogEl.value;
+                    filterName = filterNameEl.value;
+                    filterCategory = getSelectedCategories().join(',');
+                    loadAndDisplay();
+                    return;
+                }
             }
 
             if (records.length === 0) {
